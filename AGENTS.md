@@ -55,6 +55,39 @@ Still true: do not add a block whose *layout* is one site's identity. The
 file-folder card, the stamped label device, the hash-chain — those stay in their
 sites.
 
+### Invariants inside the blocks
+
+Each of these encodes a decision. Removing one silently undoes it, and the
+starter asserts most of them so the build catches you.
+
+- **`HeroBlock` has no `secondaryCta`, and must not gain one.** Two equally
+  weighted buttons split attention at the decision point, against both sites'
+  funnel doc. A subordinate path goes in the `cta-secondary` slot. The starter
+  asserts exactly one `.df-hero__btn` renders.
+- **`FaqBlock` renders the accordion and the FAQPage JSON-LD from the same
+  array.** Never add a way to pass schema separately from visible content:
+  markup whose answers are not on the page is a manual-action risk, and the
+  single-array design is what makes that unwritable. The starter asserts each
+  answer appears at least twice in the HTML (DOM + JSON-LD).
+- **Two pricing layouts, never one with a `layout` prop.** `PricingCards` and
+  `PricingMatrix` share `lib/pricing`'s `Tier`. If a third presentation is
+  needed, add a third component or write it site-side — do not grow a flag.
+- **`CompareRow.values` is keyed by `Tier.id`, not positional.** The old
+  positional array silently blanked a column when a tier was renamed or
+  reordered. Keep it a `Record`.
+- **A missing matrix value renders as an em dash, never blank.** "Not included"
+  is information; an empty cell reads as an oversight.
+- **`PricingMatrix.caption` is required.** A comparison table is meaningless to
+  a screen reader without one, and an optional prop would go unset.
+- **`ScarcityBlock` is not a countdown and must not become one.** A timer that
+  restarts on reload reads as a trick. Its `layout` enum is the only justified
+  presentation switch in the kit: both sites independently arrived at the same
+  two densities of the same content, which is evidence it is real rather than
+  speculative. Do not treat it as licence for more.
+- **`FormBlock.success.flag` must match the flag `ConversionTracking` listens
+  for.** Another paired contract that fails silently: the form submits, the
+  visitor returns, and the conversion goes uncounted.
+
 ## Hard rules
 
 These are not style preferences. Each one is a bug that already happened, here

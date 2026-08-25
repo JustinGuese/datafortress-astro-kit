@@ -346,6 +346,87 @@ Sites had 24 copies of this markup with two drifting class variants.
 | `prompt` | `string` | blank option text — override per language |
 | `hint` / `note` | `string?` | fine print under / aside in the label |
 
+### `FormBlock.astro` — a Formspree form with its plumbing wired
+
+Put the fields in the default slot; the action, the hidden `form` name, the
+`_next` redirect, `TrackingFields` and the submit button are handled for you.
+That boilerplate appeared five times on pruefanfrage.de and had already drifted
+— one form was missing its honeypot, another its `_next`.
+
+| prop | type | |
+|---|---|---|
+| `formspreeId` | `string` | required; the part after `/f/` |
+| `variant` | `string` | submission `variant` + `data-cta` on the button |
+| `name` | `string?` | hidden `form` field; defaults to `variant` |
+| `success` | `{ flag, anchor? }?` | builds `?flag=1#anchor` for the return trip |
+| `submitLabel` | `string` | required |
+| `class` | `string?` | your card styling on the `<form>` |
+
+Slots: default (fields), `submit-icon`, `note`.
+
+**The `success.flag` you set here is the flag `ConversionTracking` listens for** —
+set one without the other and the form works while the conversion goes uncounted.
+
+### `FaqBlock.astro` — accordion + FAQPage JSON-LD
+
+| prop | type | |
+|---|---|---|
+| `items` | `{ q, a }[]` | required |
+| `openIndex` | `number` | default `0`; `-1` opens none |
+| `schema` | `boolean` | default `true`; off if the page already has FAQPage markup |
+
+Both halves render from the **same array**, which is the point: Google issues
+manual actions for FAQ markup whose answers are not visible on the page, and the
+reliable way to prevent that is to make writing one without the other
+impossible. Native `<details>`, so it is keyboard accessible and works before
+hydration.
+
+### `PricingCards.astro` / `PricingMatrix.astro` — the offer ladder
+
+Two layouts over one `Tier` type from `lib/pricing`, **not one component with a
+`layout` flag**. pruefanfrage uses the row-wise matrix so a five-rung ladder can
+be compared like-for-like; konforme-ki uses column cards. Those are genuinely
+different presentations, and a site needing a third writes its own component
+against the same `Tier[]` losing nothing.
+
+```ts
+const tiers = [
+  { id: 'pro', name: 'Pro', price: '€49', priceNote: 'per month',
+    highlight: true, badge: 'Most popular',
+    cta: { label: 'Choose Pro', href: '#signup' }, features: ['…'] },
+] satisfies Tier[];
+```
+
+`PricingCards` takes `tiers` and an optional `footnote`.
+`PricingMatrix` additionally takes `rows: CompareRow[]`, a **required**
+`caption` (a comparison table is meaningless to a screen reader without one) and
+an optional `rowHeader`.
+
+`CompareRow.values` is keyed by `Tier.id`, so renaming a tier is a type error
+rather than a silently blank column. A missing value renders as an em dash —
+which is itself information, and the reason a matrix beats independent cards.
+`cta.href` gets `data-cta={tier.id}` automatically.
+
+Exactly one tier should carry `highlight`; highlighting two highlights neither,
+and the kit warns in the console if you do.
+
+### `ScarcityBlock.astro` — honest capacity
+
+| prop | type | |
+|---|---|---|
+| `total` / `taken` | `number` | keep `taken` truthful |
+| `layout` | `'badge' \| 'band'` | inline vs its own section |
+| `badgeText` | `string` | supports `{left}` `{total}` `{period}` |
+| `bandTitle` / `bandBody` | `string?` | band layout only |
+| `period` | `string?` | substituted for `{period}` |
+
+Only use this where intake really is capped — an unbacked scarcity claim is
+misleading advertising (§5 UWG in DE), and a compliance-minded buyer is exactly
+the audience that will ask you to justify the number.
+
+**Deliberately not a countdown timer.** A clock that restarts on reload reads as
+a trick and costs more trust than it buys urgency.
+
 ### `ArrowRight.astro`
 
 The CTA arrow, so every block and site points the same way.
@@ -359,6 +440,8 @@ The CTA arrow, so every block and site points the same way.
 - **`lib/collections`** — `legalSchema()`, `articleSchema(categories)` for
   `content.config.ts`. Pass your own category slugs; a typo then fails the build
   instead of silently dropping an article out of the nav.
+- **`lib/pricing`** — the `Tier` and `CompareRow` types shared by both pricing
+  layouts, plus `assertSingleHighlight()`.
 - **`lib/site`** — `defineSiteConfig()` types the one config file every site
   writes (autocomplete, typo'd keys caught at build, identical shape across
   repos) and `formspreeAction(id)` builds the form URL. Everything in that
