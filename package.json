@@ -1,7 +1,7 @@
 {
   "name": "@justinguese/astro-kit",
   "type": "module",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "Consent-gated analytics, first-touch attribution, SEO head and funnel tracking for Astro landing pages. The invisible correctness layer — deliberately contains no section components.",
   "author": "Justin Güse",
   "license": "MIT",
