@@ -1,6 +1,6 @@
 @import "tailwindcss";
-@import "@datafortress/astro-kit/styles/tokens.css";
-@import "@datafortress/astro-kit/styles/prose.css";
+@import "@justinguese/astro-kit/styles/tokens.css";
+@import "@justinguese/astro-kit/styles/prose.css";
 
 @theme {
   --font-display: "Archivo", ui-sans-serif, sans-serif;

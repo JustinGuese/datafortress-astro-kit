@@ -1,4 +1,9 @@
-# @datafortress/astro-kit
+# @justinguese/astro-kit
+
+[![CI](https://github.com/JustinGuese/datafortress-astro-kit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JustinGuese/datafortress-astro-kit/actions/workflows/ci.yml)
+[![Publish](https://github.com/JustinGuese/datafortress-astro-kit/actions/workflows/publish.yml/badge.svg)](https://github.com/JustinGuese/datafortress-astro-kit/actions/workflows/publish.yml)
+[![npm](https://img.shields.io/npm/v/@justinguese/astro-kit)](https://www.npmjs.com/package/@justinguese/astro-kit)
+[![license](https://img.shields.io/npm/l/@justinguese/astro-kit)](LICENSE)
 
 Shared plumbing for DataFortress Astro landing pages: consent-gated analytics,
 first-touch attribution, SEO head, funnel and conversion tracking.
@@ -51,7 +56,7 @@ for every push, so the thing you clone is known to work.
 **Or add the kit to an existing Astro site:**
 
 ```sh
-npm install @datafortress/astro-kit
+npm install @justinguese/astro-kit
 ```
 
 Requires Astro 7 and Node ≥ 22.12. Tailwind 4 is optional — only
@@ -65,8 +70,8 @@ until you run `npm update`. See §5.
 
 ```css
 @import "tailwindcss";
-@import "@datafortress/astro-kit/styles/tokens.css";   /* role tokens (placeholder values) */
-@import "@datafortress/astro-kit/styles/prose.css";    /* .article-body, optional */
+@import "@justinguese/astro-kit/styles/tokens.css";   /* role tokens (placeholder values) */
+@import "@justinguese/astro-kit/styles/prose.css";    /* .article-body, optional */
 
 /* Your brand. Redefining a role token here overrides the kit default. */
 @theme {
@@ -79,11 +84,11 @@ until you run `npm update`. See §5.
 }
 ```
 
-> **If you use kit class names in your own markup, add
-> `@source "../../node_modules/@datafortress/astro-kit";`.**
-> Tailwind 4 does not scan `node_modules`. The kit's own components are styled
-> with scoped `<style>` blocks precisely so they do not depend on this — but
-> anything *you* write referencing them does.
+> **Do not add `@source "…/node_modules/@justinguese/astro-kit"`.** You do not
+> need it: every kit component styles itself with a scoped `<style>` block,
+> which Tailwind never purges. Adding it makes Tailwind scan the kit's source
+> and emit utilities nothing uses — on pruefanfrage.de that took the built CSS
+> from 41 kB to 75 kB, an 80% increase for no visual change.
 
 ### `src/config/site.ts`
 
@@ -91,7 +96,7 @@ One file holding every value that identifies this site. Nothing below should
 ever be typed into a component again.
 
 ```ts
-import { defineSiteConfig } from '@datafortress/astro-kit/lib/site';
+import { defineSiteConfig } from '@justinguese/astro-kit/lib/site';
 
 export const site = defineSiteConfig({
   name: 'example.de',
@@ -120,13 +125,13 @@ Analytics IDs and Formspree *form* ids are public by design.
 ```astro
 ---
 import '../styles/global.css';
-import SeoHead from '@datafortress/astro-kit/SeoHead.astro';
-import Consent from '@datafortress/astro-kit/Consent.astro';
-import CookieBanner from '@datafortress/astro-kit/CookieBanner.astro';
-import Attribution from '@datafortress/astro-kit/Attribution.astro';
-import FunnelTracking from '@datafortress/astro-kit/FunnelTracking.astro';
-import StickyCta from '@datafortress/astro-kit/StickyCta.astro';
-import { organizationSchema } from '@datafortress/astro-kit/lib/seo';
+import SeoHead from '@justinguese/astro-kit/SeoHead.astro';
+import Consent from '@justinguese/astro-kit/Consent.astro';
+import CookieBanner from '@justinguese/astro-kit/CookieBanner.astro';
+import Attribution from '@justinguese/astro-kit/Attribution.astro';
+import FunnelTracking from '@justinguese/astro-kit/FunnelTracking.astro';
+import StickyCta from '@justinguese/astro-kit/StickyCta.astro';
+import { organizationSchema } from '@justinguese/astro-kit/lib/seo';
 import { site } from '../config/site';
 
 interface Props { title?: string; description?: string; ogType?: 'website' | 'article' }
@@ -366,7 +371,7 @@ To try a change against a real site before releasing:
 
 ```sh
 cd datafortress-astro-kit && npm link       # once
-cd ../website-example && npm link @datafortress/astro-kit
+cd ../website-example && npm link @justinguese/astro-kit
 ```
 
 ### Release
@@ -378,7 +383,7 @@ git push --follow-tags
 
 Pushing the tag triggers `.github/workflows/publish.yml`, which re-runs CI and
 then publishes to npm with a provenance attestation. Then bump the range in each
-consuming site (`npm update @datafortress/astro-kit`, commit the lockfile).
+consuming site (`npm update @justinguese/astro-kit`, commit the lockfile).
 
 - **`prepublishOnly` refuses to publish** if the git tag disagrees with
   `package.json`, if a colour literal has leaked out of `styles/tokens.css`, or
@@ -394,16 +399,27 @@ repo.** The workflow's `id-token: write` permission lets npm exchange a GitHub
 identity token for a short-lived, single-publish credential, and attach
 provenance automatically. Nothing to rotate.
 
-**First publish is manual, once**, because the trusted-publisher setting lives
-on a package page that does not exist yet:
+Granular npm tokens expire after 90 days at most and classic tokens no longer
+exist, so a token in CI would be a standing rotation chore. An OIDC exchange
+expires in minutes and lives only inside the job.
 
-1. Confirm you own the `@datafortress` scope on npm.
-2. `npm login && npm publish` locally.
-3. On npmjs.com → the package → Settings → Trusted publisher, add: GitHub
-   Actions, `JustinGuese/datafortress-astro-kit`, workflow `publish.yml`, no
-   environment.
+**The bootstrap publish was manual, once** (0.2.0), because the
+trusted-publisher setting lives on a package page that has to exist first. It is
+done; the remaining one-time step is on npmjs.com → the package → Settings →
+**Trusted publisher** → GitHub Actions, `JustinGuese/datafortress-astro-kit`,
+workflow `publish.yml`, no environment. Every tag after that publishes through
+CI with no secret involved.
 
-Every tag after that publishes through CI with no secret involved.
+Two things that bite when publishing by hand:
+
+- **`publishConfig.provenance` fails locally** with *"Automatic provenance
+  generation not supported for provider: null"* — provenance needs a recognised
+  CI provider. Pass `npm publish --no-provenance` for a manual publish. 0.2.0 is
+  therefore unattested; everything released through CI is attested.
+- **A 404 on `PUT` is about the scope, not the package.** npm returns 404 rather
+  than 403 for a scope you do not own, so *"could not be found or you do not
+  have permission"* on a first publish means the scope is wrong or the org does
+  not exist — not that anything is missing locally.
 
 > **`npm link` needs one line in the consuming site's `astro.config.mjs`:**
 >

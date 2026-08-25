@@ -1,4 +1,4 @@
-import { defineSiteConfig } from '@datafortress/astro-kit/lib/site';
+import { defineSiteConfig } from '@justinguese/astro-kit/lib/site';
 
 /**
  * Everything that identifies this site. Nothing below should ever be typed

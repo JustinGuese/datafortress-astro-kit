@@ -37,20 +37,18 @@ jobs:
       - name: Use an npm that speaks OIDC
         run: npm install -g npm@latest
 
-      # No NODE_AUTH_TOKEN. npm sees the Actions OIDC env (that is what the
-      # `id-token: write` permission above grants), exchanges the identity token
-      # for a short-lived, single-publish credential, and attaches provenance
-      # automatically. Nothing to rotate: granular tokens expire after 90 days
-      # at most, an OIDC exchange expires in minutes.
+      # Deliberately no NODE_AUTH_TOKEN, and do not add one: npm sees the Actions
+      # OIDC env (that is what `id-token: write` above grants), exchanges the
+      # identity token for a short-lived, single-publish credential, and attaches
+      # provenance automatically. A token present in the environment would be
+      # used in preference to the exchange — and granular tokens expire after 90
+      # days at most, which is the rotation chore this setup exists to avoid.
       #
-      # One-time setup on npmjs.com → the package → Settings → Trusted
-      # publisher: GitHub Actions, JustinGuese/datafortress-astro-kit,
-      # workflow `publish.yml`, no environment.
-      #
-      # Chicken-and-egg: that page only exists once the package does. Publish
-      # the first version by hand (`npm login && npm publish` locally), then
-      # configure the trusted publisher, and every tag after that goes through
-      # here with no secret in the repo.
+      # Configured once on npmjs.com → @justinguese/astro-kit → Settings →
+      # Trusted publisher: GitHub Actions, JustinGuese/datafortress-astro-kit,
+      # workflow `publish.yml`, no environment. The match is on the filename of
+      # the workflow that runs `npm publish` — so if this step ever moves into a
+      # reusable workflow, that setting has to point at the new file.
       - name: Publish
         run: npm publish
         # `access` and `provenance` come from publishConfig in package.json.

@@ -1,4 +1,4 @@
-# AGENTS.md — `@datafortress/astro-kit`
+# AGENTS.md — `@justinguese/astro-kit`
 
 Instructions for LLM agents working in this repo. Read this before editing
 anything here. `README.md` is for *consumers*; this file is for *contributors*.
@@ -54,7 +54,11 @@ or in `df_flutter_shared`.
 5. **Kit components style themselves with scoped `<style>` + role tokens, not
    Tailwind utilities.** Tailwind 4 does not scan `node_modules`; a consumer who
    forgets `@source` would get silently unstyled components with no error
-   anywhere. Scoped styles cannot be purged.
+   anywhere. Scoped styles cannot be purged — and because of that, **consumers
+   must NOT add an `@source` for this package.** Doing so makes Tailwind scan
+   the kit and emit utilities nothing uses: on pruefanfrage.de it took the built
+   CSS from 41 kB to 75 kB with no visual change. If you ever add a component
+   that relies on the consumer's Tailwind, you break this guarantee — don't.
 6. **Keep files under ~250 lines.**
 
 ## Architecture: paired contracts
@@ -180,6 +184,21 @@ For tracking changes, click a CTA and assert exactly one event lands in
 `npm version <patch|minor|major>` then `git push --follow-tags`. The tag
 triggers `.github/workflows/publish.yml`, which re-runs CI (via `workflow_call`,
 so the two cannot drift) and publishes to npm with provenance.
+
+**There is no npm token in this repo and there must never be one.** Publishing
+goes through npm Trusted Publishing: the workflow's `id-token: write` permission
+lets npm swap a GitHub OIDC token for a short-lived, single-publish credential.
+Granular tokens cap out at 90 days, so a secret here would be a recurring
+rotation chore and a standing credential to leak. If a publish fails on auth,
+fix the trusted-publisher config on the package page — do not "temporarily" add
+`NODE_AUTH_TOKEN`. Two consequences worth knowing: the job needs npm >= 11.5.1
+(the Node 22 runner image ships npm 10, hence the explicit upgrade step), and
+`NODE_AUTH_TOKEN` must stay unset, because a token present in the environment is
+used in preference to the OIDC exchange.
+
+Publishing by hand (only ever needed to bootstrap a new package name) requires
+`npm publish --no-provenance`: `publishConfig.provenance` is `true`, and outside
+a recognised CI provider npm refuses with *"not supported for provider: null"*.
 
 `scripts/check-publish.mjs` runs as `prepublishOnly` and **refuses to publish**
 when the git tag disagrees with `package.json`, when a colour literal has leaked

@@ -8,7 +8,7 @@
  * lives.
  *
  *   // src/config/site.ts
- *   import { defineSiteConfig } from '@datafortress/astro-kit/lib/site';
+ *   import { defineSiteConfig } from '@justinguese/astro-kit/lib/site';
  *   export const site = defineSiteConfig({ name: 'example.de', … });
  *
  * The generic preserves literal types, so `site.name` is `'example.de'` rather
