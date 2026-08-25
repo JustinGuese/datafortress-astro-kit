@@ -290,6 +290,15 @@ a regex is both faster and verifiable. Two rules:
   (`'stamp' | 'file'` → `'accent' | 'support'`) leaves callers passing the old
   value; the build succeeds and ships a wrongly-coloured button. Run it before
   declaring done — it found exactly that on pruefanfrage.de.
+- **Astro escapes prop strings, so HTML entities double-escape.** Copy moved out
+  of markup and into a prop keeps its `&quot;` / `&amp;` — which then renders
+  as the literal characters `&quot;` on the page. Use the real character
+  (`„ … “`) in props. Markup that read `Prüfung &amp; Kontrolle` becomes the
+  plain string `Prüfung & Kontrolle`.
+- **Decode entities before diffing visible text**, or the diff lights up with
+  false positives: raw `&` in the old markup versus a correct `&amp;` in the new
+  output are the same character to a reader. `html.unescape()` in the `strip()`
+  helper above.
 
 ### Contract renames to apply site-wide
 
@@ -317,17 +326,81 @@ Three destinations. The site keeps only the middle one:
 
 Do **not** add `@source` for this package (see Hard rules #5).
 
+### Moving a section onto a shared block
+
+Written after unifying the two sites' heroes. The plumbing migration above is
+mechanical; this part is design work and needs a decision per section.
+
+1. **Diff the two sites' versions of the section first.** They will not be
+   interchangeable — pruefanfrage's hero took `title/subtitle/bullets/stats`,
+   konforme-ki's took `marginalie/primaryCta/secondaryCta` with its copy
+   hardcoded inside. What recurs is the role and the data, never the markup.
+2. **Pick the better-converting structure and say why in the file.** Do not
+   average the two. For the hero, both sites' own funnel doc said "one CTA above
+   the fold, nothing else clickable" and one of them shipped two competing
+   buttons — so that structure lost, and `HeroBlock` has no `secondaryCta` prop
+   at all. **Encode the decision in the API**; a rule expressed as a missing
+   prop survives, a rule expressed as a comment does not.
+3. **Sort the markup into three piles** before writing the block:
+   - *structure* → the block (grid, headline, CTA, note, bullets, stats)
+   - *identity* → stays in the site, passed through a slot (the file-folder
+     card, the rotated stamp, the hash-chain diagram)
+   - *content* → props, or a slot when the copy needs markup inside it
+4. **Offer both a prop and a slot for text.** `headline` as a prop covers the
+   common case; the `headline` slot lets a site put a `<strong>`, a link or a
+   redaction mark inside it. Slot wins when both are given.
+5. **Expect the visible-text diff to show content MOVING, not disappearing.**
+   Unifying pruefanfrage's hero moved the three stats out of the aside card and
+   under the CTA — the same words appear as one `<` and one `>` per word. Read
+   the diff for words that vanish with no matching `>`; that is a real loss. One
+   did: a decorative "Frist" stamp, recovered through the `headline` slot.
+
 ### While the kit is npm-linked
 
 The consuming site needs `vite: { resolve: { preserveSymlinks: true } }` in
 `astro.config.mjs` or its build dies on the kit's scoped styles. Harmless to
 leave in permanently.
 
+**`npm link` also hides a dependency that cannot be satisfied — this is the
+dangerous one.** A linked site resolves imports against your working tree, so it
+builds green while importing components that exist nowhere on the registry.
+pruefanfrage.de imported `HeroBlock.astro`, `Field.astro` and `ArrowRight.astro`
+against a declared `^0.2.0` whose published tarball contained none of them; the
+first CI `npm install` would have died with `UNRESOLVED_IMPORT`.
+
+**A linked build is not evidence that CI will work.** Before declaring a
+migration done, prove it unlinked:
+
+```sh
+npm unlink --no-save @justinguese/astro-kit   # or: rm -rf node_modules
+npm install && npm run build
+```
+
+If that needs a kit version that is not published yet, say so explicitly rather
+than reporting the migration as finished — the site cannot deploy until it is.
+
 ## Releasing
 
 `npm version <patch|minor|major>` then `git push --follow-tags`. The tag
 triggers `.github/workflows/publish.yml`, which re-runs CI (via `workflow_call`,
 so the two cannot drift) and publishes to npm with provenance.
+
+**Always `npm version`; never `git tag` by hand.** `v0.2.1` was tagged manually,
+so `package.json` at that commit still read `0.2.0`. `prepublishOnly` refused the
+release and nothing reached npm — correct behaviour, but it looks like a
+successful tag-and-push until you check `npm view <pkg> version`. `npm version`
+moves the manifest, the commit and the tag together, which is the whole point.
+
+**Recovering from a failed release: bump past it, do not retag.** The stale tag
+is inert once the publish is refused, and deleting a tag from a shared remote is
+a destructive operation that needs asking for. `v0.2.1` was left in place and
+`0.2.2` released instead. Record the miss in `CHANGELOG.md` so the version gap
+is not a mystery later.
+
+**Confirm the release actually landed.** `npm view @justinguese/astro-kit version`
+and, when a release adds components, check the published tarball really has
+them: `npm pack @justinguese/astro-kit@<v>` then `tar -tzf`. A green workflow is
+not the same as a published file.
 
 **There is no npm token in this repo and there must never be one.** Publishing
 goes through npm Trusted Publishing: the workflow's `id-token: write` permission
