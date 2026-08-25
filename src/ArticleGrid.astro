@@ -7,6 +7,7 @@
  * Each card is a single `<a>`: the whole tile is the target, not just the
  * headline, which is the difference between a 44px tap target and a 16px one.
  */
+import ArrowRight from './ArrowRight.astro';
 import type { ArticleCard } from './lib/article';
 
 interface Props {
@@ -25,6 +26,12 @@ const { items, columns = 3, class: className = '' } = Astro.props;
       <span class="df-cards__title">{item.title}</span>
       {item.description && <span class="df-cards__desc">{item.description}</span>}
       {item.meta && <span class="df-cards__meta">{item.meta}</span>}
+      {item.cta && (
+        <span class="df-cards__cta">
+          {item.cta}
+          <ArrowRight />
+        </span>
+      )}
     </a>
   ))}
 </div>
@@ -83,4 +90,23 @@ const { items, columns = 3, class: className = '' } = Astro.props;
     color: var(--color-ink-soft);
   }
   .df-cards__meta { margin-top: 1.25rem; }
+
+  .df-cards__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-accent);
+    transition: gap 0.15s;
+  }
+  .df-cards__card:hover .df-cards__cta { gap: 0.75rem; }
+  /* :global, because the arrow lives inside a child component's template. */
+  .df-cards__cta :global(svg) { height: 0.75rem; width: 0.75rem; }
+  @media (prefers-reduced-motion: reduce) {
+    .df-cards__cta { transition: none; }
+  }
 </style>

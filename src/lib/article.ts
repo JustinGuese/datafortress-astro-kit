@@ -15,6 +15,12 @@ export interface ArticleCard {
   kicker?: string;
   /** Small label at the foot, e.g. '7 Min. Lesezeit'. */
   meta?: string;
+  /**
+   * Read-more affordance at the foot of the card, e.g. 'Lesen'. Rendered with
+   * the arrow — the whole card is already the link, so this is a visual cue,
+   * not a nested anchor.
+   */
+  cta?: string;
 }
 
 /** A table-of-contents entry, matching the shape Astro's `render()` returns. */

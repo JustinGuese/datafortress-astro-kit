@@ -115,7 +115,13 @@ if (unverified && (quotes.length > 0 || stats.length > 0)) {
     margin-top: 1rem;
     color: var(--color-ink);
     line-height: 1.7;
+    /* `auto` picks the marks for the document language, so a German page gets
+       „…“ and an English one “…” without the kit hardcoding either. Typing the
+       characters into the markup is what the no-German-copy rule forbids. */
+    quotes: auto;
   }
+  .df-proof__quote blockquote p::before { content: open-quote; }
+  .df-proof__quote blockquote p::after { content: close-quote; }
   .df-proof__quote figcaption {
     margin-top: 1.5rem;
     padding-top: 1.25rem;

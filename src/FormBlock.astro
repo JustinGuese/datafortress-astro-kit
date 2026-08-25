@@ -32,6 +32,15 @@ interface Props {
   submitLabel: string;
   /** Extra classes on the <form>, for the site's own card styling. */
   class?: string;
+  /**
+   * Extra classes on the submit button, layered over `.df-form__submit`.
+   *
+   * An escape hatch, not a variant: a site that needs one form's button to read
+   * as a different action (a secondary rung in a support colour, say) passes the
+   * classes rather than the kit growing an `accent` enum that every consumer
+   * then has to have an opinion about.
+   */
+  submitClass?: string;
 }
 
 const {
@@ -41,6 +50,7 @@ const {
   success,
   submitLabel,
   class: className = '',
+  submitClass = '',
 } = Astro.props;
 
 const landingPage = Astro.url.pathname;
@@ -55,7 +65,7 @@ const next = success
 
   <slot />
 
-  <button type="submit" data-cta={variant} class="df-form__submit">
+  <button type="submit" data-cta={variant} class:list={['df-form__submit', submitClass]}>
     {submitLabel}
     <slot name="submit-icon" />
   </button>
