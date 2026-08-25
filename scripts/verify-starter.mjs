@@ -11,7 +11,7 @@
  * a README nobody executes drifts from reality, and this package exists
  * precisely for the case where the details are no longer in anyone's head.
  */
-import { execFileSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -45,10 +45,13 @@ try {
   run('npm', ['install', '--no-audit', '--no-fund', '--no-save', join(staging, tarball)], fixture);
 
   console.log('› building fixture');
-  run('npm', ['run', 'build'], fixture);
+  // stderr merged in: ProofBlock's unverified-content warning is a console.warn,
+  // and asserting on it is the only thing keeping that guard from rotting.
+  const buildLog = execSync('npm run build 2>&1', { cwd: fixture, encoding: 'utf8' });
 
   const dist = join(fixture, 'dist');
   const html = readFileSync(join(dist, 'index.html'), 'utf8');
+  const articleHtml = readFileSync(join(dist, 'article', 'index.html'), 'utf8');
   // Astro's `inlineStylesheets: 'auto'` puts SMALL stylesheets in a <style> tag
   // in the HTML and only large/shared ones in _astro/*.css. A component used on
   // one page usually lands inline. Checking only the external file reports a
@@ -59,8 +62,9 @@ try {
     .filter((f) => f.endsWith('.css'))
     .map((f) => readFileSync(join(cssDir, f), 'utf8'))
     .join('\n');
-  const inlined = [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join('\n');
-  const css = `${external}\n${inlined}`;
+  const styleTags = (page) =>
+    [...page.matchAll(/<style>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join('\n');
+  const css = `${external}\n${styleTags(html)}\n${styleTags(articleHtml)}`;
 
   console.log('\nconsent gating');
   check(
@@ -95,7 +99,9 @@ try {
   console.log('\nscoped styles survive the package boundary');
   // If these are missing, a consumer gets invisible components and no error.
   for (const cls of ['.df-banner', '.df-sticky', '.df-hero', '.df-field', '.df-faq',
-                     '.df-tier', '.df-matrix', '.df-scarcity', '.df-form__submit', '.article-body']) {
+                     '.df-tier', '.df-matrix', '.df-scarcity', '.df-form__submit', '.article-body',
+                     '.df-proof', '.df-compare', '.df-head', '.df-band', '.df-article',
+                     '.df-cards', '.df-crumbs', '.df-progress']) {
     check(`${cls} is emitted into the built CSS`, css.includes(cls));
   }
   check(
@@ -129,6 +135,40 @@ try {
   check('tier CTAs carry their id as the analytics label', html.includes('data-cta="pro"'));
   check('FormBlock wires the Formspree _next redirect',
         html.includes('name="_next"') && html.includes('newsletter=1'));
+  check('CompareBlock renders a screen-reader caption', html.includes('df-compare__caption'));
+  const compareTable = html.slice(html.indexOf('df-compare__scroll'), html.indexOf('df-compare__footnote'));
+  check(
+    'a false comparison value renders as an em dash, not blank',
+    compareTable.includes('>—<'),
+    'leaving a competitor cell blank reads as an evasion and costs the table its credibility',
+  );
+  check('CtaBand tracks both of its actions',
+        html.includes('data-cta="band"') && html.includes('data-cta="band-secondary"'));
+  check(
+    'ProofBlock warns at build time while its entries are unverified',
+    /UNVERIFIED proof/.test(buildLog),
+    'invented testimonials on a live page are misleading advertising — the warning must be loud',
+  );
+
+  console.log('\narticle layer');
+  check('ArticleLayout renders the breadcrumb trail', articleHtml.includes('df-crumbs'));
+  check('the current page carries aria-current, not a link', articleHtml.includes('aria-current="page"'));
+  check('the table of contents links to the body anchors', articleHtml.includes('href="#when"'));
+  check(
+    'tocFrom keeps h2 only',
+    !articleHtml.includes('Not this one'),
+    'an h3 leaked into the table of contents — tocFrom is meant to filter by depth',
+  );
+  check('the article FAQ is visible AND emits FAQPage JSON-LD',
+        articleHtml.includes('"@type":"FAQPage"') &&
+        (articleHtml.match(/on receipt, which is why/g) || []).length >= 2);
+  check('Article JSON-LD is present', articleHtml.includes('"@type":"Article"'));
+  check('read-next cards render through ArticleGrid', articleHtml.includes('df-cards__card'));
+  for (const slot of ['kicker', 'aside', 'disclaimer', 'cta']) {
+    check(`the ${slot} slot renders`, articleHtml.includes(`data-cta="article-${slot}"`) ||
+      (slot === 'kicker' && articleHtml.includes('>Deadlines<')) ||
+      (slot === 'disclaimer' && articleHtml.includes('not legal advice')));
+  }
 
   console.log('\nsitemap');
   const sitemap = readFileSync(join(dist, 'sitemap-0.xml'), 'utf8');

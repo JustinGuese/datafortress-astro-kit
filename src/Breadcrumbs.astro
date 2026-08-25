@@ -1,0 +1,48 @@
+---
+/**
+ * Visible breadcrumb trail. The matching `BreadcrumbList` JSON-LD is a separate
+ * call (`lib/seo` → `breadcrumbSchema`) because the schema wants absolute URLs
+ * and the visible trail wants a plain last item with no link.
+ */
+interface Props {
+  /** Last item should carry no `href` — it is the current page. */
+  items: { label: string; href?: string }[];
+  /** `aria-label` on the nav. Translate it. */
+  label?: string;
+  class?: string;
+}
+
+const { items, label = 'Breadcrumb', class: className = '' } = Astro.props;
+---
+<nav aria-label={label} class:list={['df-crumbs', className]}>
+  {items.map((item, i) => (
+    <>
+      {i > 0 && <span class="df-crumbs__sep" aria-hidden="true">/</span>}
+      {item.href ? (
+        <a href={item.href}>{item.label}</a>
+      ) : (
+        <span aria-current="page">{item.label}</span>
+      )}
+    </>
+  ))}
+</nav>
+
+<style>
+  .df-crumbs {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-ink-faint);
+  }
+  .df-crumbs a {
+    color: inherit;
+    transition: color 0.15s;
+  }
+  .df-crumbs a:hover { color: var(--color-ink); }
+  .df-crumbs [aria-current='page'] { color: var(--color-ink-soft); }
+  .df-crumbs__sep {
+    margin: 0 0.5rem;
+    color: var(--color-line);
+  }
+</style>

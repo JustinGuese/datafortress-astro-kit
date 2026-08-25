@@ -14,6 +14,7 @@
  * phone — the widest column scrolls within the table instead.
  */
 import { assertSingleHighlight, type CompareRow, type Tier } from './lib/pricing';
+import { compareCell } from './lib/compare';
 
 interface Props {
   tiers: Tier[];
@@ -31,12 +32,7 @@ interface Props {
 const { tiers, rows, footnote, caption, rowHeader = 'Feature' } = Astro.props;
 assertSingleHighlight(tiers);
 
-const cell = (row: CompareRow, tier: Tier) => {
-  const v = row.values[tier.id];
-  if (v === true) return '✓';
-  if (v === false || v === undefined || v === '') return '—';
-  return v;
-};
+const cell = (row: CompareRow, tier: Tier) => compareCell(row, tier.id);
 ---
 <div class="df-matrix__scroll">
   <table class="df-matrix">

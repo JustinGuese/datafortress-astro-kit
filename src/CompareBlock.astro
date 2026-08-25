@@ -1,0 +1,153 @@
+---
+/**
+ * "Versus the alternatives" — the table a buyer is building in their head anyway.
+ *
+ * Distinct from `PricingMatrix`, which compares your own tiers against each
+ * other. This one compares your offer against the options it is actually losing
+ * to: doing it by hand, a raw LLM, the incumbent. Same grid, so it shares
+ * `CompareRow` — the difference is that exactly one column is yours.
+ *
+ * Answering every row for every column, including unflatteringly, is what makes
+ * the table persuasive rather than decorative. Resist the urge to leave a
+ * competitor's cell blank: an em dash reads as an evasion, and a fair-looking
+ * table is what earns the one row you actually need believed.
+ *
+ * The table is its own scroll container so a four-column comparison never forces
+ * the page body to scroll sideways on a phone.
+ */
+import { assertSingleHighlight, compareCell, type CompareColumn, type CompareRow } from './lib/compare';
+
+interface Props {
+  columns: CompareColumn[];
+  rows: CompareRow[];
+  /** Screen-reader caption. Required — a comparison table without one is noise. */
+  caption: string;
+  /** Header of the first column. */
+  rowHeader?: string;
+  footnote?: string;
+  class?: string;
+}
+
+const { columns, rows, caption, rowHeader = 'Dimension', footnote, class: className = '' } = Astro.props;
+assertSingleHighlight(columns);
+---
+<div class:list={['df-compare__scroll', className]}>
+  <table class="df-compare">
+    <caption class="df-compare__caption">{caption}</caption>
+    <thead>
+      <tr>
+        <th scope="col"><span class="df-compare__corner">{rowHeader}</span></th>
+        {columns.map((col) => (
+          <th scope="col" data-highlight={col.highlight ? 'true' : 'false'}>
+            <span class="df-compare__label">{col.label}</span>
+            {col.note && <span class="df-compare__note">{col.note}</span>}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr>
+          <th scope="row">{row.label}</th>
+          {columns.map((col) => (
+            <td data-highlight={col.highlight ? 'true' : 'false'}>{compareCell(row, col.id)}</td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+{footnote && <p class="df-compare__footnote">{footnote}</p>}
+
+<style>
+  .df-compare__scroll {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    border: 1.5px solid var(--color-ink);
+  }
+  .df-compare {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    text-align: left;
+  }
+
+  /* Visually hidden, still announced. */
+  .df-compare__caption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .df-compare thead th {
+    padding: 1rem 1.25rem;
+    vertical-align: bottom;
+    border-bottom: 1.5px solid var(--color-ink);
+  }
+  .df-compare thead th[data-highlight='true'] {
+    background: var(--color-ink);
+    color: var(--color-canvas);
+  }
+  .df-compare__corner,
+  .df-compare__label {
+    display: block;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-ink-faint);
+  }
+  .df-compare thead th[data-highlight='true'] .df-compare__label {
+    color: var(--color-canvas);
+  }
+  .df-compare__note {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--color-ink-faint);
+  }
+  .df-compare thead th[data-highlight='true'] .df-compare__note {
+    color: color-mix(in srgb, var(--color-canvas) 65%, transparent);
+  }
+
+  .df-compare tbody th {
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    vertical-align: top;
+    min-width: 11rem;
+  }
+  .df-compare tbody td {
+    padding: 1rem 1.25rem;
+    vertical-align: top;
+    color: var(--color-ink-soft);
+    min-width: 10rem;
+  }
+  .df-compare tbody tr + tr :is(th, td) {
+    border-top: 1px solid var(--color-line);
+  }
+  .df-compare tbody td[data-highlight='true'] {
+    background: var(--color-canvas-deep);
+    color: var(--color-ink);
+    font-weight: 500;
+  }
+
+  .df-compare__footnote {
+    margin-top: 1rem;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.75rem;
+    color: var(--color-ink-faint);
+  }
+</style>

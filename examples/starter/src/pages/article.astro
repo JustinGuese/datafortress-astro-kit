@@ -1,0 +1,99 @@
+---
+/**
+ * Exercises the article layer: ArticleLayout with its four slots, plus the
+ * Breadcrumbs / ReadingProgress / FaqBlock / ArticleGrid it composes.
+ *
+ * A real site drives this from a content collection — see the README. Here the
+ * body is written inline so the fixture needs no collection of its own.
+ */
+import Site from '../layouts/Site.astro';
+import ArticleLayout from '@justinguese/astro-kit/ArticleLayout.astro';
+import { articleSchema, breadcrumbSchema } from '@justinguese/astro-kit/lib/seo';
+import { tocFrom } from '@justinguese/astro-kit/lib/article';
+import { site } from '../config/site';
+
+const title = 'How the deadline actually works';
+const description = 'What the letter means, what you owe, and by when.';
+const url = `${site.url}/article`;
+
+// A collection page passes the `headings` from `render(entry)` here instead.
+const toc = tocFrom(
+  [
+    { slug: 'what', text: 'What the letter is', depth: 2 },
+    { slug: 'when', text: 'When the clock starts', depth: 2 },
+    { slug: 'how', text: 'What to send back', depth: 2 },
+    { slug: 'aside', text: 'Not this one', depth: 3 },
+  ],
+);
+---
+<Site title={title} description={description} ogType="article">
+  <Fragment slot="head">
+    <script
+      type="application/ld+json"
+      is:inline
+      set:html={JSON.stringify(
+        articleSchema({
+          headline: title,
+          description,
+          url,
+          datePublished: '2026-03-01',
+          dateModified: '2026-03-01',
+          publisher: site.name,
+          section: 'Deadlines',
+        }),
+      )}
+    />
+    <script
+      type="application/ld+json"
+      is:inline
+      set:html={JSON.stringify(
+        breadcrumbSchema([
+          { name: 'Start', url: `${site.url}/` },
+          { name: 'Guides', url: `${site.url}/article` },
+        ]),
+      )}
+    />
+  </Fragment>
+
+  <ArticleLayout
+    title={title}
+    description={description}
+    breadcrumbs={[{ label: 'Start', href: '/' }, { label: 'Guides', href: '/article' }, { label: 'Deadlines' }]}
+    meta={['Updated 1 March 2026', '7 min read', 'Deadlines']}
+    toc={toc}
+    tocTitle="Contents"
+    faqTitle="Frequently asked"
+    faq={[
+      { q: 'Does the clock start on the postmark?', a: 'No — on receipt, which is why you keep the envelope.' },
+      { q: 'Can I ask for an extension?', a: 'Usually once, in writing, before the original date passes.' },
+    ]}
+    relatedTitle="Read next"
+    related={[
+      { href: '/article', title: 'A related guide', description: 'Same category, different question.', kicker: 'Deadlines', meta: '5 min' },
+      { href: '/article', title: 'A second one', description: 'So the grid has more than one cell.', kicker: 'Evidence', meta: '9 min' },
+    ]}
+  >
+    <span slot="kicker" class="tag">Deadlines</span>
+
+    <div slot="aside" style="border:1.5px solid var(--color-accent);padding:1.25rem;background:var(--color-canvas)">
+      <p style="font-weight:700">Request already on your desk?</p>
+      <a href="/#signup" data-cta="article-aside">Submit a case</a>
+    </div>
+
+    <h2 id="what">What the letter is</h2>
+    <p>Body copy rendered through <code>.article-body</code> from the kit's prose stylesheet.</p>
+    <h2 id="when">When the clock starts</h2>
+    <p>A second section, so the table of contents has something to point at.</p>
+    <h2 id="how">What to send back</h2>
+    <p>And a third.</p>
+
+    <p slot="disclaimer" style="margin-top:2.5rem;border-left:3px solid var(--color-line);padding-left:1.25rem">
+      This describes practice and is not legal advice.
+    </p>
+
+    <div slot="cta" style="margin-top:3rem;background:var(--color-ink);color:var(--color-canvas);padding:2rem">
+      <p>The end-of-article conversion block goes in this slot.</p>
+      <a href="/#signup" data-cta="article-cta" style="color:var(--color-canvas)">Get the templates</a>
+    </div>
+  </ArticleLayout>
+</Site>

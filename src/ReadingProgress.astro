@@ -1,0 +1,46 @@
+---
+/**
+ * Scroll-progress bar for long-form pages.
+ *
+ * Transform-only (`scaleX`), so it never triggers layout on scroll, and the
+ * listener is passive. Hidden under `prefers-reduced-motion` — a bar that tracks
+ * the scroll position is exactly the kind of continuous motion that rule is
+ * about, and it carries no information the scrollbar does not.
+ */
+interface Props {
+  class?: string;
+}
+const { class: className = '' } = Astro.props;
+---
+<div class:list={['df-progress', className]} aria-hidden="true"></div>
+
+<script is:inline>
+  (() => {
+    const bar = document.querySelector('.df-progress');
+    if (!bar) return;
+    const update = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      bar.style.transform = `scaleX(${max > 0 ? Math.min(1, window.scrollY / max) : 0})`;
+    };
+    addEventListener('scroll', update, { passive: true });
+    addEventListener('resize', update, { passive: true });
+    update();
+  })();
+</script>
+
+<style>
+  .df-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    height: 3px;
+    transform: scaleX(0);
+    transform-origin: left;
+    background: var(--color-accent);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .df-progress { display: none; }
+  }
+</style>

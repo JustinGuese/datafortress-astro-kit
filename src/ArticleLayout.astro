@@ -1,0 +1,255 @@
+---
+/**
+ * The long-form article page: breadcrumbs, sticky TOC, header, body, FAQ,
+ * disclaimer, CTA, read-next.
+ *
+ * This is the biggest single thing the kit shares, and the one where drift was
+ * most expensive — the SEO furniture (breadcrumbs, TOC jump links, visible FAQ
+ * backing the FAQPage markup, a dated "Stand" line) is worth nothing if it is
+ * only on some articles, and it was.
+ *
+ * Everything site-specific is a slot, not a prop:
+ *   `kicker`     — the category tag, styled however the site styles tags
+ *   `aside`      — the sticky offer card under the TOC (usually your best CTA)
+ *   `disclaimer` — legal note under the body
+ *   `cta`        — the end-of-article conversion block
+ * Nest this inside your own page layout; it renders no `<head>` and no chrome.
+ *
+ * Requires `styles/prose.css` for `.article-body` — the body slot is wrapped in
+ * it so a page does not have to remember.
+ */
+import Breadcrumbs from './Breadcrumbs.astro';
+import ReadingProgress from './ReadingProgress.astro';
+import FaqBlock from './FaqBlock.astro';
+import ArticleGrid from './ArticleGrid.astro';
+import type { ArticleCard, TocEntry } from './lib/article';
+
+interface Props {
+  title: string;
+  /** Standfirst under the H1. Usually the same string as the meta description. */
+  description?: string;
+  breadcrumbs?: { label: string; href?: string }[];
+  breadcrumbLabel?: string;
+  /**
+   * The dateline, rendered as a `·`-separated row, e.g.
+   * `['Stand 3. März 2026', '7 Min. Lesezeit', 'Fristen']`.
+   */
+  meta?: string[];
+  /** Usually `tocFrom(headings)` from `lib/article`. */
+  toc?: TocEntry[];
+  tocTitle?: string;
+  /**
+   * Below this many entries the TOC is dropped. Two jump links are furniture,
+   * not navigation — and an almost-empty box next to a long article reads as a
+   * bug.
+   */
+  tocMin?: number;
+  /** Rendered visibly AND as FAQPage JSON-LD, from this one array. */
+  faq?: { q: string; a: string }[];
+  faqTitle?: string;
+  /** Turn the JSON-LD off if the page emits its own FAQPage graph. */
+  faqSchema?: boolean;
+  related?: ArticleCard[];
+  relatedTitle?: string;
+  /** Scroll-progress bar. */
+  progress?: boolean;
+  class?: string;
+}
+
+const {
+  title,
+  description,
+  breadcrumbs = [],
+  breadcrumbLabel,
+  meta = [],
+  toc = [],
+  tocTitle = 'Contents',
+  tocMin = 3,
+  faq = [],
+  faqTitle = 'Frequently asked',
+  faqSchema = true,
+  related = [],
+  relatedTitle = 'Read next',
+  progress = true,
+  class: className = '',
+} = Astro.props;
+
+const showToc = toc.length >= tocMin;
+const hasAside = showToc || Astro.slots.has('aside');
+---
+{progress && <ReadingProgress />}
+
+<article class:list={['df-article', className]}>
+  {breadcrumbs.length > 0 && <Breadcrumbs items={breadcrumbs} label={breadcrumbLabel} />}
+
+  <div class="df-article__grid" data-aside={hasAside ? 'true' : 'false'}>
+    {hasAside && (
+      <aside class="df-article__aside">
+        <div class="df-article__sticky">
+          {showToc && (
+            <nav aria-label={tocTitle} class="df-article__toc">
+              <p class="df-article__toc-title">{tocTitle}</p>
+              <ol>
+                {toc.map((h) => (
+                  <li><a href={`#${h.slug}`}>{h.text}</a></li>
+                ))}
+              </ol>
+            </nav>
+          )}
+          {Astro.slots.has('aside') && (
+            <div class="df-article__aside-slot" data-after-toc={showToc ? 'true' : 'false'}>
+              <slot name="aside" />
+            </div>
+          )}
+        </div>
+      </aside>
+    )}
+
+    <div class="df-article__main">
+      <header class="df-article__header">
+        <slot name="kicker" />
+        <h1>{title}</h1>
+        {description && <p class="df-article__standfirst">{description}</p>}
+        {meta.length > 0 && (
+          <p class="df-article__meta">
+            {meta.map((m, i) => (
+              <>
+                {i > 0 && <span class="df-article__dot" aria-hidden="true">·</span>}
+                <span>{m}</span>
+              </>
+            ))}
+          </p>
+        )}
+      </header>
+
+      <div class="article-body df-article__body">
+        <slot />
+      </div>
+
+      {faq.length > 0 && (
+        <section class="df-article__faq" aria-labelledby="df-article-faq">
+          <h2 id="df-article-faq">{faqTitle}</h2>
+          <FaqBlock items={faq} schema={faqSchema} />
+        </section>
+      )}
+
+      <slot name="disclaimer" />
+      <slot name="cta" />
+
+      {related.length > 0 && (
+        <section class="df-article__related" aria-labelledby="df-article-related">
+          <h2 id="df-article-related">{relatedTitle}</h2>
+          <ArticleGrid items={related} columns={3} />
+        </section>
+      )}
+    </div>
+  </div>
+</article>
+
+<style>
+  .df-article {
+    max-width: 80rem;
+    margin-inline: auto;
+    padding: 2.5rem 1rem;
+  }
+  @media (min-width: 640px) {
+    .df-article { padding: 3.5rem 1.5rem; }
+  }
+  @media (min-width: 1024px) {
+    .df-article { padding-inline: 2rem; }
+  }
+
+  .df-article__grid {
+    margin-top: 2rem;
+    display: grid;
+    gap: 2.5rem;
+  }
+  @media (min-width: 1024px) {
+    .df-article__grid[data-aside='true'] {
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 3.5rem;
+    }
+    .df-article__aside { grid-column: span 3 / span 3; order: 2; }
+    .df-article__grid[data-aside='true'] .df-article__main {
+      grid-column: span 9 / span 9;
+      order: 1;
+      min-width: 0;
+    }
+    .df-article__sticky { position: sticky; top: 6rem; }
+  }
+
+  .df-article__toc {
+    padding: 1.25rem;
+    border: 1.5px solid var(--color-line);
+    background: var(--color-canvas-deep);
+  }
+  .df-article__toc-title {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-ink-faint);
+  }
+  .df-article__toc ol {
+    margin-top: 0.75rem;
+    list-style: none;
+    padding: 0;
+  }
+  .df-article__toc li + li { margin-top: 0.625rem; }
+  .df-article__toc a {
+    display: block;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: var(--color-ink-soft);
+    transition: color 0.15s;
+  }
+  .df-article__toc a:hover { color: var(--color-accent); }
+  .df-article__aside-slot[data-after-toc='true'] { margin-top: 1.25rem; }
+
+  .df-article__header { max-width: 48rem; }
+  .df-article__header h1 {
+    margin-top: 1.25rem;
+    font-family: var(--font-display, system-ui, sans-serif);
+    font-size: clamp(1.875rem, 1.2rem + 2.6vw, 2.9rem);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    color: var(--color-ink);
+  }
+  .df-article__standfirst {
+    margin-top: 1.25rem;
+    font-size: clamp(1.125rem, 1rem + 0.5vw, 1.25rem);
+    line-height: 1.65;
+    color: var(--color-ink-soft);
+  }
+  .df-article__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-line);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-ink-faint);
+  }
+  .df-article__dot { margin: 0 0.75rem; color: var(--color-line); }
+
+  .df-article__body { margin-top: 2.5rem; max-width: 48rem; }
+
+  .df-article__faq { margin-top: 4rem; max-width: 48rem; }
+  .df-article__related { margin-top: 4rem; }
+  .df-article__faq h2,
+  .df-article__related h2 {
+    font-family: var(--font-display, system-ui, sans-serif);
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+    margin-bottom: 1.5rem;
+  }
+  .df-article__faq h2 { font-size: clamp(1.5rem, 1.2rem + 1vw, 1.875rem); }
+  .df-article__related h2 { font-size: 1.25rem; }
+</style>

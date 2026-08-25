@@ -1,0 +1,193 @@
+---
+/**
+ * Social proof: quotes with an outcome attached, over a strip of counters.
+ *
+ * The `metric` on each quote is the part that does the work. "Sehr zufrieden"
+ * persuades nobody; "2 von 3 Herabstufungen abgewendet" is the sentence a buyer
+ * repeats to their boss. Treat a quote without a metric as a quote you have not
+ * finished collecting.
+ *
+ * ── The `unverified` prop ──────────────────────────────────────────────────
+ * Invented testimonials on a live commercial site are misleading advertising
+ * (§5 UWG in DE, and comparable rules elsewhere) and are abmahnfähig. Every one
+ * of these sites got scaffolded with placeholder quotes to validate the funnel
+ * layout, and the risk is that the placeholder ships.
+ *
+ * So the flag is required to be explicit rather than defaulted away: pass
+ * `unverified` while the entries are invented, and the build prints a warning
+ * every single time. Removing the warning means removing the invention. Prefer
+ * role + region attribution over invented person or company names even then.
+ */
+
+import type { ProofQuote, ProofStat } from './lib/proof';
+
+interface Props {
+  quotes?: ProofQuote[];
+  stats?: ProofStat[];
+  /** Provenance line under the block, e.g. 'Stand März 2026 · Angaben der Einrichtungen'. */
+  note?: string;
+  /** See the header comment. Set while the entries are placeholders. */
+  unverified?: boolean;
+  class?: string;
+}
+
+const { quotes = [], stats = [], note, unverified = false, class: className = '' } = Astro.props;
+
+if (unverified && (quotes.length > 0 || stats.length > 0)) {
+  console.warn(
+    '[astro-kit] ProofBlock is rendering UNVERIFIED proof. Invented testimonials or ' +
+      'counters on a live commercial page are misleading advertising. Replace them with ' +
+      'documented statements, or remove the block, before this domain takes traffic.',
+  );
+}
+---
+{(quotes.length > 0 || stats.length > 0) && (
+  <div class:list={['df-proof', className]} data-unverified={unverified ? 'true' : 'false'}>
+    {quotes.length > 0 && (
+      <div class="df-proof__quotes">
+        {quotes.map((q) => (
+          <figure class="df-proof__quote">
+            {q.ref && <span class="df-proof__ref">{q.ref}</span>}
+            <blockquote><p>{q.quote}</p></blockquote>
+            <figcaption>
+              <span class="df-proof__role">{q.role}</span>
+              {q.context && <span class="df-proof__context">{q.context}</span>}
+              {q.metric && (
+                <span class="df-proof__metric">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  {q.metric}
+                </span>
+              )}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    )}
+
+    {stats.length > 0 && (
+      <dl class="df-proof__stats">
+        {stats.map((s) => (
+          <div class="df-proof__stat">
+            <dd class="df-proof__value">{s.value}</dd>
+            <dt class="df-proof__label">{s.label}</dt>
+          </div>
+        ))}
+      </dl>
+    )}
+
+    {note && <p class="df-proof__note">{note}</p>}
+  </div>
+)}
+
+<style>
+  /* Cards carry their own borders rather than a gap over a coloured parent: the
+     entry count is rarely a multiple of the column count, and a gap-trick grid
+     paints its leftover cells in the divider colour. */
+  .df-proof__quotes {
+    display: grid;
+    grid-template-columns: 1fr;
+    border-top: 1.5px solid var(--color-line);
+    border-left: 1.5px solid var(--color-line);
+  }
+  @media (min-width: 768px) {
+    .df-proof__quotes { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .df-proof__quote {
+    display: flex;
+    flex-direction: column;
+    padding: 1.75rem;
+    background: var(--color-canvas);
+    border-right: 1.5px solid var(--color-line);
+    border-bottom: 1.5px solid var(--color-line);
+  }
+  .df-proof__ref {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--color-accent);
+  }
+  .df-proof__quote blockquote {
+    flex-grow: 1;
+    margin-top: 1rem;
+    color: var(--color-ink);
+    line-height: 1.7;
+  }
+  .df-proof__quote figcaption {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-line);
+  }
+  .df-proof__role {
+    display: block;
+    font-family: var(--font-display, system-ui, sans-serif);
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--color-ink);
+  }
+  .df-proof__context {
+    display: block;
+    margin-top: 0.125rem;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.6875rem;
+    color: var(--color-ink-faint);
+  }
+  .df-proof__metric {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-support, var(--color-accent));
+  }
+  .df-proof__metric svg {
+    height: 1rem;
+    width: 1rem;
+    flex-shrink: 0;
+  }
+
+  .df-proof__stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    border-left: 1.5px solid var(--color-line);
+  }
+  @media (min-width: 1024px) {
+    .df-proof__stats { grid-template-columns: repeat(4, 1fr); }
+  }
+  .df-proof__stat {
+    padding: 1.5rem;
+    text-align: center;
+    background: var(--color-ink);
+    border-right: 1.5px solid var(--color-line);
+    border-bottom: 1.5px solid var(--color-line);
+  }
+  .df-proof__value {
+    margin: 0;
+    font-family: var(--font-display, system-ui, sans-serif);
+    font-size: 1.875rem;
+    font-weight: 900;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-premium-bright, var(--color-canvas));
+  }
+  .df-proof__label {
+    margin-top: 0.5rem;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: color-mix(in srgb, var(--color-canvas) 60%, transparent);
+  }
+
+  .df-proof__note {
+    margin-top: 1.25rem;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.6875rem;
+    line-height: 1.6;
+    color: var(--color-ink-faint);
+  }
+</style>

@@ -10,22 +10,54 @@ first-touch attribution, SEO head, funnel and conversion tracking.
 
 ## 1. What this is — and what it deliberately is not
 
-**In scope: the invisible layer, where a bug fixed once must propagate.**
-Consent gating, attribution, canonical URLs, JSON-LD, click and conversion
-events. Nobody looks at these, everybody depends on them, and every site needs
-them to behave identically.
+The kit covers two layers.
 
-**Out of scope: the visible layer.** `Hero`, `Pricing`, `Faq`, `SocialProof`,
-the page funnel itself — these live in each site and are *supposed* to diverge.
-Their divergence is the product.
+**The invisible layer, where a bug fixed once must propagate.** Consent gating,
+attribution, canonical URLs, JSON-LD, click and conversion events. Nobody looks
+at these, everybody depends on them, and every site needs them to behave
+identically.
 
-> Do not add a section component here. A shared `Hero` accumulates `variant`
-> flags until it serves nobody. If you want a section to look the same on two
-> sites, copy it — copying is cheap and reversible; a bad shared abstraction is
-> neither.
+**The visible layer: the funnel itself.** Hero, pricing, FAQ, proof, comparison,
+scarcity, forms, the article layer. A landing page is not an arbitrary design —
+it is a known sequence of moves, and the sequence is the same whether you are
+selling compliance drafting or an API gateway. The part that differs between
+sites is the *words*, and words are not code.
 
-The line is: **would a difference between sites be a bug, or a feature?** Bug →
-kit. Feature → site.
+So the goal for a child site is: **`copy.ts` plus a palette.** If you find
+yourself writing markup in a new site, that is a signal the kit is missing a
+block, not that the site is special.
+
+### The rule that keeps this from rotting
+
+A shared component turns bad when it grows a `variant` flag, because flags
+multiply: two booleans are four layouts, and nobody has looked at three of them.
+The kit avoids that with one rule:
+
+> **Divergence goes through named slots or a separate component — never a
+> boolean prop.**
+
+- `HeroBlock` has a `cta-secondary` slot and an unnamed aside slot, so two sites
+  can look different without a `variant`.
+- `PricingCards` and `PricingMatrix` are two components over one `Tier[]`, not
+  one component with `layout="cards"`. They are genuinely different designs.
+- `ScarcityBlock` *does* take `layout: 'badge' | 'band'` — the one exception,
+  and only because both are the same content at two densities, which does not
+  multiply.
+
+The test before adding a prop: **would a difference between sites be a bug, or a
+feature?** A bug (an untracked CTA, a missing canonical) → fix it in the kit for
+everyone. A feature (this site argues from authority, that one from price) →
+that is copy or a slot, not a flag.
+
+And the escape hatch is always open: a site whose section genuinely does not fit
+writes its own component against the same types and tracking attributes, and
+loses nothing. Copying one section is cheap. A shared component with six flags
+is not.
+
+<sub>Earlier versions of this file said the visible layer was out of scope and
+told you not to add section components here. That was wrong, and the blocks in
+§3 are the correction — but the anti-flag rule it was protecting is real, and is
+restated above.</sub>
 
 ### Why the kit exists
 
@@ -427,6 +459,95 @@ the audience that will ask you to justify the number.
 **Deliberately not a countdown timer.** A clock that restarts on reload reads as
 a trick and costs more trust than it buys urgency.
 
+### `ProofBlock.astro` — testimonials and counters
+
+| prop | type | |
+|---|---|---|
+| `quotes` | `ProofQuote[]` | `ref`, `quote`, `role`, `context`, `metric` |
+| `stats` | `ProofStat[]` | the counter strip under the quotes |
+| `note` | `string?` | provenance line |
+| `unverified` | `boolean?` | **read this before shipping** |
+
+The `metric` on each quote is the part that works. "Sehr zufrieden" persuades
+nobody; "2 von 3 Herabstufungen abgewendet" is the sentence a buyer repeats to
+their boss. A quote without one is not finished.
+
+**`unverified` prints a build warning on every build, and that is the point.**
+These sites all get scaffolded with placeholder quotes to validate the funnel
+layout, and invented testimonials on a live commercial page are misleading
+advertising (§5 UWG in DE) and abmahnfähig. Set the flag while the entries are
+invented; the only way to silence it is to replace them. Prefer role + region
+attribution over invented names even then.
+
+### `CompareBlock.astro` — versus the alternatives
+
+| prop | type | |
+|---|---|---|
+| `columns` | `CompareColumn[]` | `id`, `label`, `note?`, `highlight?` — yours is the highlighted one |
+| `rows` | `CompareRow[]` | `values` keyed by column `id` |
+| `caption` | `string` | required, screen-reader only |
+| `rowHeader` / `footnote` | `string?` | |
+
+`PricingMatrix` compares your tiers against each other; this compares your offer
+against what the buyer is actually weighing — doing it by hand, a raw LLM, the
+incumbent. Same `CompareRow` type, same em-dash-for-missing rule.
+
+**Answer every row for every column, including unflatteringly.** A blank
+competitor cell reads as an evasion, and a table that looks fair is what earns
+the one row you actually need believed.
+
+### `SectionHeader.astro` — eyebrow, headline, lead
+
+| prop | type | |
+|---|---|---|
+| `title` | `string` | |
+| `eyebrow` / `lead` | `string?` | |
+| `as` | `'h1' \| 'h2' \| 'h3'` | pick by document outline |
+| `size` | `'sm' \| 'md' \| 'lg'` | pick by visual weight |
+| `align` | `'start' \| 'center'` | |
+| `tone` | `'ink' \| 'canvas'` | `canvas` inverts for a dark section |
+
+Slot `eyebrow` overrides the prop, so a site keeps its own tag markup (a `.tag`
+pill, a stamp) while adopting the block.
+
+### `CtaBand.astro` — the closing CTA
+
+| prop | type | |
+|---|---|---|
+| `title` / `body` / `eyebrow` | `string` | |
+| `cta` | `{ label, href, track }` | |
+| `secondary` | same, optional | rendered as an outline |
+
+Unlike `HeroBlock` this one *does* take a secondary CTA — at the foot of the
+page the reader has self-selected, and "buy" vs "what does it cost" are two real
+choices. Both are stamped with `data-cta`, so `FunnelTracking` picks them up
+with no per-page wiring.
+
+### `ArticleLayout.astro` — the long-form page
+
+| prop | type | |
+|---|---|---|
+| `title` / `description` | `string` | H1 and standfirst |
+| `breadcrumbs` | `{ label, href? }[]` | last item omits `href` |
+| `meta` | `string[]` | the `·`-separated dateline |
+| `toc` | `TocEntry[]` | usually `tocFrom(headings)` |
+| `tocMin` | `number` | below this the TOC is dropped entirely (default 3) |
+| `faq` | `{ q, a }[]` | rendered visibly *and* as FAQPage JSON-LD |
+| `related` | `ArticleCard[]` | the read-next grid |
+| `progress` | `boolean` | scroll bar, hidden under reduced-motion |
+
+Slots: `kicker` (the category tag), `aside` (the sticky offer card under the
+TOC), `disclaimer`, `cta`. Everything site-specific is a slot — the component
+takes no colour or variant props.
+
+Nest it inside your own page layout: it renders no `<head>` and no chrome.
+Requires `styles/prose.css`, since it wraps the body slot in `.article-body`.
+
+### `ArticleGrid.astro` / `Breadcrumbs.astro` / `ReadingProgress.astro`
+
+The pieces `ArticleLayout` composes, usable on their own — `ArticleGrid` for a
+category listing on an index page, `Breadcrumbs` for any nested page.
+
 ### `ArrowRight.astro`
 
 The CTA arrow, so every block and site points the same way.
@@ -440,8 +561,13 @@ The CTA arrow, so every block and site points the same way.
 - **`lib/collections`** — `legalSchema()`, `articleSchema(categories)` for
   `content.config.ts`. Pass your own category slugs; a typo then fails the build
   instead of silently dropping an article out of the nav.
-- **`lib/pricing`** — the `Tier` and `CompareRow` types shared by both pricing
-  layouts, plus `assertSingleHighlight()`.
+- **`lib/pricing`** — the `Tier` type shared by both pricing layouts, plus
+  `assertSingleHighlight()`.
+- **`lib/compare`** — `CompareColumn`, `CompareRow` and `compareCell()`, shared
+  by `PricingMatrix` and `CompareBlock` so the two grids cannot drift.
+- **`lib/proof`** — `ProofQuote`, `ProofStat`, so a site's `copy.ts` can be
+  typed without importing an `.astro` file.
+- **`lib/article`** — `ArticleCard`, `TocEntry` and `tocFrom(headings, depth)`.
 - **`lib/site`** — `defineSiteConfig()` types the one config file every site
   writes (autocomplete, typo'd keys caught at build, identical shape across
   repos) and `formspreeAction(id)` builds the form URL. Everything in that

@@ -1,0 +1,102 @@
+---
+/**
+ * Eyebrow → headline → lead. Every section on every one of these pages opens
+ * with this shape, and it had been retyped roughly twenty times per site with
+ * drifting sizes and margins.
+ *
+ * The eyebrow is both a prop and a slot: pass `eyebrow` for the kit's default
+ * mono label, or fill the `eyebrow` slot with the site's own tag markup (a
+ * `.tag` pill, a stamp, whatever the brand does). The slot wins if both are
+ * given, so adopting the block never costs a site its signature element.
+ */
+interface Props {
+  title: string;
+  /** Small label above the headline. */
+  eyebrow?: string;
+  /** Supporting line under the headline. */
+  lead?: string;
+  /** Heading level. Pick by document outline, not by size — size is `size`. */
+  as?: 'h1' | 'h2' | 'h3';
+  size?: 'sm' | 'md' | 'lg';
+  align?: 'start' | 'center';
+  /** `canvas` inverts the type for a dark section. */
+  tone?: 'ink' | 'canvas';
+  /** Set when a section needs to be linkable from a jump-link nav. */
+  id?: string;
+  class?: string;
+}
+
+const {
+  title,
+  eyebrow,
+  lead,
+  as: Tag = 'h2',
+  size = 'md',
+  align = 'start',
+  tone = 'ink',
+  id,
+  class: className = '',
+} = Astro.props;
+
+const hasEyebrowSlot = Astro.slots.has('eyebrow');
+---
+<div
+  class:list={['df-head', className]}
+  data-size={size}
+  data-align={align}
+  data-tone={tone}
+>
+  {hasEyebrowSlot ? <slot name="eyebrow" /> : eyebrow && <span class="df-head__eyebrow">{eyebrow}</span>}
+  <Tag id={id} class="df-head__title">{title}</Tag>
+  {lead && <p class="df-head__lead">{lead}</p>}
+</div>
+
+<style>
+  .df-head[data-align='center'] {
+    text-align: center;
+    margin-inline: auto;
+  }
+
+  .df-head__eyebrow {
+    display: inline-block;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-accent);
+  }
+
+  .df-head__title {
+    font-family: var(--font-display, system-ui, sans-serif);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--color-ink);
+  }
+  /* `:has` degrades correctly: without support the title simply keeps its own
+     top margin, which is what an eyebrow-less header wants anyway. */
+  .df-head:has(.df-head__eyebrow) .df-head__title,
+  .df-head__eyebrow + .df-head__title { margin-top: 1rem; }
+
+  .df-head[data-size='sm'] .df-head__title { font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem); }
+  .df-head[data-size='md'] .df-head__title { font-size: clamp(1.875rem, 1.5rem + 1.4vw, 2.25rem); }
+  .df-head[data-size='lg'] .df-head__title { font-size: clamp(2.25rem, 1.6rem + 2.6vw, 3rem); }
+
+  .df-head__lead {
+    margin-top: 0.75rem;
+    max-width: 42rem;
+    font-size: 1.125rem;
+    line-height: 1.65;
+    color: var(--color-ink-soft);
+  }
+  .df-head[data-align='center'] .df-head__lead { margin-inline: auto; }
+
+  .df-head[data-tone='canvas'] .df-head__title { color: var(--color-canvas); }
+  .df-head[data-tone='canvas'] .df-head__lead {
+    color: color-mix(in srgb, var(--color-canvas) 72%, transparent);
+  }
+  .df-head[data-tone='canvas'] .df-head__eyebrow {
+    color: var(--color-premium-bright, var(--color-canvas));
+  }
+</style>

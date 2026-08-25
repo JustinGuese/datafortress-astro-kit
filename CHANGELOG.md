@@ -8,6 +8,52 @@ sibling repos' `src/` first and update the call sites in the same release.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-08-25
+
+### Changed
+
+- **The scope boundary moved.** The README used to say the visible layer was out
+  of scope and that section components must never be added here. That was wrong
+  in a way that worked against the point of the package: a landing page is a
+  known sequence of moves, the sequence is the same across these sites, and only
+  the words differ. The goal for a child site is now **`copy.ts` plus a
+  palette**. The rule that line was protecting — *divergence goes through named
+  slots or a separate component, never a boolean variant prop* — is unchanged
+  and now stated on its own.
+
+### Added
+
+The article layer and the remaining funnel sections.
+
+- **`ArticleLayout.astro`** — breadcrumbs, sticky TOC, header, body, FAQ,
+  disclaimer, CTA and read-next in one component, with everything site-specific
+  behind the `kicker` / `aside` / `disclaimer` / `cta` slots. This was ~455 lines
+  duplicated across two page templates on one site, and the SEO furniture it
+  carries is worth nothing if it is only on some articles — which it was.
+- **`ArticleGrid.astro`** — the article card grid, shared by index-page category
+  sections and the read-next strip. Those two had already drifted into two
+  slightly different cards on the same site.
+- **`Breadcrumbs.astro`**, **`ReadingProgress.astro`** — the pieces
+  `ArticleLayout` composes, usable on their own.
+- **`ProofBlock.astro`** — quotes with an outcome attached, over a counter strip.
+  Its `unverified` prop prints a build warning on every build: these sites all
+  get scaffolded with placeholder testimonials, and shipping one is misleading
+  advertising (§5 UWG in DE). The starter asserts the warning is emitted, so it
+  cannot be quietly deleted.
+- **`CompareBlock.astro`** — your offer against the alternatives a buyer is
+  actually weighing, over the same `CompareRow` type as `PricingMatrix`.
+- **`SectionHeader.astro`** — eyebrow / headline / lead, the shape that opens
+  every section and had been retyped ~20 times per site with drifting sizes. The
+  `eyebrow` slot lets a site keep its own tag markup while adopting the block.
+- **`CtaBand.astro`** — the closing CTA band. This one *does* take a secondary
+  CTA, unlike `HeroBlock`; at the foot of the page the reader has self-selected.
+- **`lib/compare`** (`CompareColumn`, `CompareRow`, `compareCell`,
+  `assertSingleHighlight`), **`lib/proof`**, **`lib/article`** (`ArticleCard`,
+  `TocEntry`, `tocFrom`).
+
+`lib/pricing` re-exports `CompareRow` from `lib/compare`, so existing imports
+keep working.
+
 ## [0.3.0] — 2026-08-25
 
 ### Added

@@ -7,7 +7,12 @@ import FaqBlock from '@justinguese/astro-kit/FaqBlock.astro';
 import PricingMatrix from '@justinguese/astro-kit/PricingMatrix.astro';
 import PricingCards from '@justinguese/astro-kit/PricingCards.astro';
 import ScarcityBlock from '@justinguese/astro-kit/ScarcityBlock.astro';
+import ProofBlock from '@justinguese/astro-kit/ProofBlock.astro';
+import CompareBlock from '@justinguese/astro-kit/CompareBlock.astro';
+import SectionHeader from '@justinguese/astro-kit/SectionHeader.astro';
+import CtaBand from '@justinguese/astro-kit/CtaBand.astro';
 import type { CompareRow, Tier } from '@justinguese/astro-kit/lib/pricing';
+import type { CompareColumn } from '@justinguese/astro-kit/lib/compare';
 
 const tiers = [
   { id: 'free', name: 'Free', price: '€0', priceNote: 'forever', cta: { label: 'Start', href: '#signup' },
@@ -21,6 +26,17 @@ const tiers = [
 const rows = [
   { label: 'Seats', values: { free: '1', pro: '3', team: 'unlimited' } },
   { label: 'Support', values: { free: false, pro: true, team: true } },
+] satisfies CompareRow[];
+
+const alternatives = [
+  { id: 'manual', label: 'By hand', note: 'what most people do today' },
+  { id: 'diy', label: 'A raw LLM' },
+  { id: 'ours', label: 'This offer', highlight: true },
+] satisfies CompareColumn[];
+
+const alternativeRows = [
+  { label: 'Time per case', values: { manual: '2–4 hours', diy: '30 min, unchecked', ours: '30–45 min, sourced' } },
+  { label: 'Audit trail', values: { manual: false, diy: false, ours: true } },
 ] satisfies CompareRow[];
 import ConversionTracking from '@justinguese/astro-kit/ConversionTracking.astro';
 import { site } from '../config/site';
@@ -85,6 +101,38 @@ import { site } from '../config/site';
     </div>
   </section>
 
+  <section style="padding:3rem 1rem;max-width:64rem;margin-inline:auto">
+    <SectionHeader
+      eyebrow="From the field"
+      title="Who has already made a deadline with this"
+      lead="Teams that had the same request on their desk."
+    />
+    <div style="margin-top:2rem">
+      <ProofBlock
+        unverified
+        quotes={[
+          { ref: 'REF-114', quote: 'We sent the drafts the same day and two of three downgrades held.',
+            role: 'Operations lead', context: 'Care service · ~140 clients', metric: '2 of 3 downgrades avoided' },
+        ]}
+        stats={[{ value: '217', label: 'cases handled' }, { value: '2.4 h', label: 'saved per case' }]}
+        note="Placeholder content — replace before this domain takes traffic."
+      />
+    </div>
+
+    <div style="margin-top:3rem">
+      <SectionHeader as="h2" size="sm" title="Versus the alternatives" />
+      <div style="margin-top:1.5rem">
+        <CompareBlock
+          columns={alternatives}
+          rows={alternativeRows}
+          caption="This offer compared against handling it manually or with a raw LLM"
+          rowHeader="Dimension"
+          footnote="Times are medians across the last 50 cases."
+        />
+      </div>
+    </div>
+  </section>
+
   <section id="pricing" style="padding:3rem 1rem;max-width:64rem;margin-inline:auto">
     <h2>Pricing</h2>
     <PricingCards tiers={tiers} footnote="All prices excl. VAT." />
@@ -95,4 +143,12 @@ import { site } from '../config/site';
   <section id="signup" style="padding:3rem 1rem">
     <h2>Signup</h2>
   </section>
+
+  <CtaBand
+    eyebrow="Still deciding"
+    title="Reading helps. A finished answer helps faster."
+    body="Send the redacted request and get a sourced draft back in about five working days."
+    cta={{ label: 'Submit a case', href: '#signup', track: 'band' }}
+    secondary={{ label: 'Compare prices', href: '#pricing', track: 'band-secondary' }}
+  />
 </Site>

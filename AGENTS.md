@@ -24,12 +24,18 @@ or a feature?**
 
 - **Bug → belongs here.** Consent gating, canonical URLs, attribution, event
   names, JSON-LD shape.
-- **Feature → belongs in the site.** Page funnels, palettes, copy, and any
-  section whose *layout* is that site's identity.
+- **Feature → belongs in the site.** Palettes, copy, and any section whose
+  *layout* is that site's signature device.
 
-Section blocks sit across this line and have their own rule — see below. The
-short version: the kit owns a section's data shape, schema and tracking; the
-site owns its copy and anything visually load-bearing.
+Note what is **not** on the "site" side of that line: the funnel. A landing page
+is a known sequence of moves — hook, proof, comparison, ladder, objections,
+close — and that sequence is the same across these sites. Only the words differ,
+and words are `copy.ts`. The target for a child site is **`copy.ts` plus a
+palette**; if a new site needs hand-written markup, the kit is missing a block.
+
+Section blocks therefore sit across the line and have their own rule — see
+below. The short version: the kit owns a section's data shape, schema and
+tracking; the site owns its copy and anything visually load-bearing.
 
 ### Blocks: the refined rule
 
@@ -95,6 +101,29 @@ starter asserts most of them so the build catches you.
 - **`FormBlock.success.flag` must match the flag `ConversionTracking` listens
   for.** Another paired contract that fails silently: the form submits, the
   visitor returns, and the conversion goes uncounted.
+- **`ProofBlock.unverified` must stay loud and must not default to true.** Every
+  one of these sites was scaffolded with invented testimonials to validate the
+  funnel layout, and the risk is that the placeholder ships. Invented quotes or
+  counters on a live commercial page are misleading advertising (§5 UWG in DE)
+  and abmahnfähig. The flag prints a build warning on every build, deliberately
+  un-silenceable — removing the warning means removing the invention. The
+  starter asserts the warning is emitted, so nobody can quietly delete it.
+- **`CompareBlock` answers every row for every column.** Leaving a competitor's
+  cell blank reads as an evasion; the em dash is what makes the table look fair
+  enough for the one row you actually need believed. Same `compareCell` helper
+  as `PricingMatrix`, so the two cannot drift.
+- **`CtaBand` takes a secondary CTA and `HeroBlock` does not.** That is not an
+  inconsistency. Above the fold a second option splits attention before intent
+  exists; at the foot of the page the reader has already self-selected and the
+  two live choices are genuinely "buy" and "what does it cost". Keep the
+  secondary an outline, never a second filled button.
+- **`ArticleLayout` puts everything site-specific in a slot** (`kicker`,
+  `aside`, `disclaimer`, `cta`) and takes no colour or variant props. It renders
+  no `<head>` — nest it inside the site's own page layout.
+- **`tocFrom` filters by heading depth.** A table of contents built from every
+  heading is unreadable, and `ArticleLayout` drops the TOC entirely below
+  `tocMin` entries: two jump links are furniture, and an almost-empty box beside
+  a long article reads as a bug.
 
 ## Hard rules
 

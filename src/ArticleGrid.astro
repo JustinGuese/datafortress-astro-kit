@@ -1,0 +1,86 @@
+---
+/**
+ * The card grid for lists of articles — a category section on an index page, or
+ * the "read next" strip at the foot of a post. One component, because those two
+ * had already drifted into two slightly different cards on the same site.
+ *
+ * Each card is a single `<a>`: the whole tile is the target, not just the
+ * headline, which is the difference between a 44px tap target and a 16px one.
+ */
+import type { ArticleCard } from './lib/article';
+
+interface Props {
+  items: ArticleCard[];
+  /** Columns at the widest breakpoint. Below that it steps down to 2, then 1. */
+  columns?: 2 | 3;
+  class?: string;
+}
+
+const { items, columns = 3, class: className = '' } = Astro.props;
+---
+<div class:list={['df-cards', className]} data-columns={columns}>
+  {items.map((item) => (
+    <a href={item.href} class="df-cards__card">
+      {item.kicker && <span class="df-cards__kicker">{item.kicker}</span>}
+      <span class="df-cards__title">{item.title}</span>
+      {item.description && <span class="df-cards__desc">{item.description}</span>}
+      {item.meta && <span class="df-cards__meta">{item.meta}</span>}
+    </a>
+  ))}
+</div>
+
+<style>
+  /* Borders live on the cards, not as a gap over a coloured parent: the item
+     count is rarely a multiple of the column count, and a gap-trick grid paints
+     its leftover cells in the divider colour. */
+  .df-cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    border-top: 1.5px solid var(--color-line);
+    border-left: 1.5px solid var(--color-line);
+  }
+  @media (min-width: 640px) {
+    .df-cards { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 1024px) {
+    .df-cards[data-columns='3'] { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .df-cards__card {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    background: var(--color-canvas);
+    border-right: 1.5px solid var(--color-line);
+    border-bottom: 1.5px solid var(--color-line);
+    transition: background-color 0.15s;
+  }
+  .df-cards__card:hover { background: var(--color-canvas-deep); }
+
+  .df-cards__kicker,
+  .df-cards__meta {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-ink-faint);
+  }
+  .df-cards__title {
+    margin-top: 0.75rem;
+    font-family: var(--font-display, system-ui, sans-serif);
+    font-size: 1.0625rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--color-ink);
+    transition: color 0.15s;
+  }
+  .df-cards__card:hover .df-cards__title { color: var(--color-accent); }
+  .df-cards__desc {
+    flex-grow: 1;
+    margin-top: 0.625rem;
+    font-size: 0.875rem;
+    line-height: 1.65;
+    color: var(--color-ink-soft);
+  }
+  .df-cards__meta { margin-top: 1.25rem; }
+</style>

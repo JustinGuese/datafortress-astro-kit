@@ -35,27 +35,15 @@ export interface Tier {
 }
 
 /**
- * One comparison row. `values` is keyed by `Tier.id`, so a renamed tier fails
- * loudly at the type level instead of silently blanking a column.
- *
- * A missing value renders as an em dash — which is itself information, and the
- * reason the matrix beats independent cards: every row is answered by every
- * tier.
+ * A pricing matrix and a "versus the alternatives" table are the same grid with
+ * different columns, so the row type lives in `lib/compare` and is re-exported
+ * here. In `PricingMatrix` the `values` keys are `Tier.id`.
  */
-export interface CompareRow {
-  label: string;
-  /** Group heading this row sits under, if the table is sectioned. */
-  group?: string;
-  values: Record<string, string | boolean>;
-}
+export type { CompareRow } from './compare';
+
+import { assertSingleHighlight as assertOne } from './compare';
 
 /** Highlighting more than one tier defeats the purpose; catch it in dev. */
 export function assertSingleHighlight(tiers: Tier[]): void {
-  const n = tiers.filter((t) => t.highlight).length;
-  if (n > 1) {
-    console.warn(
-      `[astro-kit] ${n} tiers are highlighted. Highlighting more than one removes the ` +
-        `signal — pick the tier you actually want chosen.`,
-    );
-  }
+  assertOne(tiers, 'tiers');
 }
