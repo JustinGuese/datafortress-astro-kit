@@ -1,0 +1,57 @@
+name: Publish to npm
+
+# Publishing is driven by a version tag, so the released artifact always
+# corresponds to a commit you can `git checkout`. `prepublishOnly` refuses to
+# publish if the tag and package.json version disagree.
+#
+#   npm version minor && git push --follow-tags
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  # Never publish something that has not passed CI. This runs the same job as
+  # a normal push rather than a copy of it, so the two cannot drift.
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      # Required to mint the provenance attestation that links this tarball to
+      # this commit and workflow. Without it, `provenance: true` in
+      # package.json's publishConfig fails the publish.
+      id-token: write
+      # write, not read: the last step creates the GitHub release.
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Publish
+        run: npm publish
+        env:
+          # Create at npmjs.com → Access Tokens → Granular, scoped to
+          # @datafortress/astro-kit with read+write, then add it as a repo
+          # secret named NPM_TOKEN.
+          #
+          # Alternative worth switching to once the package exists: npm Trusted
+          # Publishing. Configure this repo + workflow as a trusted publisher on
+          # the package settings page and the token can be deleted entirely —
+          # `id-token: write` above is already what it needs.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # `access` and `provenance` come from publishConfig in package.json.
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --notes "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)." \
+            --verify-tag

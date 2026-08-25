@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Lets the publish workflow reuse this exact job before releasing.
+  workflow_call:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Astro 7 requires >=22.12.0 (package.json engines).
+          node-version: 22
+
+      # There is no build step and no runtime dependency, so there is nothing
+      # to install at the root. The fixture installs the PACKED TARBALL, which
+      # is what makes this a real test: a file missing from `files` in
+      # package.json fails here rather than in a consuming site.
+      - name: Build the fixture against the packed tarball and assert on its output
+        run: node scripts/verify-fixture.mjs
+
+      # Must run after the step above, which is what installs the kit tarball
+      # into the fixture. `npm run check` (not `npx astro check`) because npx
+      # would prompt to install @astrojs/check and hang the runner.
+      - name: Type-check the fixture against the kit's shipped types
+        working-directory: test/fixture
+        run: npm run check
+
+      - name: Publish checks (colour literals, exports/files agreement)
+        run: node scripts/check-publish.mjs

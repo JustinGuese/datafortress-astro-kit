@@ -1,0 +1,62 @@
+---
+import '../styles/global.css';
+import SeoHead from '@datafortress/astro-kit/SeoHead.astro';
+import Consent from '@datafortress/astro-kit/Consent.astro';
+import CookieBanner from '@datafortress/astro-kit/CookieBanner.astro';
+import Attribution from '@datafortress/astro-kit/Attribution.astro';
+import FunnelTracking from '@datafortress/astro-kit/FunnelTracking.astro';
+import StickyCta from '@datafortress/astro-kit/StickyCta.astro';
+import { organizationSchema } from '@datafortress/astro-kit/lib/seo';
+import { site } from '../config/site';
+
+interface Props { title?: string; description?: string; ogType?: 'website' | 'article' }
+const {
+  title = `${site.name} — smoke test`,
+  description = site.description,
+  ogType = 'website',
+} = Astro.props;
+---
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+
+    <SeoHead
+      title={title}
+      description={description}
+      siteName={site.name}
+      locale={site.locale}
+      ogType={ogType}
+      schemas={[organizationSchema({
+        name: site.name,
+        legalName: site.legalName,
+        url: site.url,
+        description: site.description,
+        address: site.address,
+      })]}
+    />
+
+    <!-- MUST come before anything that calls gtag. -->
+    <Consent ga4Id={site.ga4Id} metaPixelId={site.metaPixelId} />
+
+    <slot name="head" />
+  </head>
+  <body class="bg-canvas text-ink font-sans">
+    <main><slot /></main>
+
+    <CookieBanner privacyHref={site.privacyHref} strings={{
+      message: 'Wir verwenden Cookies, um unseren Datenverkehr zu analysieren.',
+      privacyLinkLabel: 'Datenschutzerklärung',
+      acceptLabel: 'Alle akzeptieren',
+      declineLabel: 'Alle ablehnen',
+      regionLabel: 'Cookie-Einwilligung',
+    }} />
+
+    <StickyCta href="/#signup" cta="sticky" strings={{ ctaLabel: 'Jetzt starten' }}
+               hideNear={['signup', 'pricing']} />
+
+    <Attribution />
+    <FunnelTracking />
+  </body>
+</html>

@@ -3,3 +3,6 @@ dist/
 .astro/
 *.tgz
 .DS_Store
+
+# The fixture is built from the packed tarball on every CI run.
+test/fixture/package-lock.json

@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@import "@datafortress/astro-kit/styles/tokens.css";
+@import "@datafortress/astro-kit/styles/prose.css";
+
+@theme {
+  --font-display: "Archivo", ui-sans-serif, sans-serif;
+  --color-canvas: #f4f2ea;
+  --color-canvas-deep: #eae5d6;
+  --color-ink: #15181b;
+  --color-ink-soft: #4b5259;
+  --color-ink-faint: #7c828a;
+  --color-accent: #9a2c1c;
+  --color-line: #d9d4c6;
+}

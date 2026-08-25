@@ -1,0 +1,39 @@
+---
+import Site from '../layouts/Site.astro';
+import TrackingFields from '@datafortress/astro-kit/TrackingFields.astro';
+import ConversionTracking from '@datafortress/astro-kit/ConversionTracking.astro';
+import { site } from '../config/site';
+---
+<Site>
+  <ConversionTracking states={[
+    { flag: 'newsletter', revealId: 'newsletter-done', event: 'newsletter_lead', label: 'Newsletter' },
+  ]} />
+
+  <section style="min-height:120vh;padding:3rem 1rem;max-width:48rem;margin-inline:auto">
+    <h1 class="font-display" style="font-size:2.5rem;font-weight:800">Smoke test</h1>
+
+    <a href="#pricing" data-cta="hero">Hero CTA</a>
+    <a href="/kontakt" data-contact-cta="body">Contact link</a>
+
+    <div id="newsletter-done" hidden>Danke!</div>
+
+    <form action={`https://formspree.io/f/${site.formspreeId}`} method="POST">
+      <input type="email" name="email" required />
+      <TrackingFields variant="newsletter" />
+      <button type="submit" data-cta="newsletter">Absenden</button>
+    </form>
+
+    <div class="article-body" style="margin-top:3rem">
+      <h2>Kurz zusammengefasst</h2>
+      <ul><li>Prose styles come from the kit.</li></ul>
+      <p>Body copy with a <a href="#x">link</a> and <code>code</code>.</p>
+    </div>
+  </section>
+
+  <section id="pricing" style="padding:3rem 1rem">
+    <h2>Pricing</h2>
+  </section>
+  <section id="signup" style="padding:3rem 1rem">
+    <h2>Signup</h2>
+  </section>
+</Site>

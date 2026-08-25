@@ -164,6 +164,31 @@ For tracking changes, click a CTA and assert exactly one event lands in
 
 ## Releasing
 
-See `README.md` §5. Short version: `npm version <patch|minor|major>`,
-`git push --tags`, then bump the pin in each consuming site. **Never tell a
-consumer to install `#main`.**
+`npm version <patch|minor|major>` then `git push --follow-tags`. The tag
+triggers `.github/workflows/publish.yml`, which re-runs CI (via `workflow_call`,
+so the two cannot drift) and publishes to npm with provenance.
+
+`scripts/check-publish.mjs` runs as `prepublishOnly` and **refuses to publish**
+when the git tag disagrees with `package.json`, when a colour literal has leaked
+out of `styles/tokens.css`, or when the `exports` map points at a file that is
+not in the published `files`. If it fails, fix the cause — never bypass it with
+`--ignore-scripts`.
+
+While `0.x`, a minor bump may break things; say so in `CHANGELOG.md`.
+
+## Testing
+
+`npm test` runs `scripts/verify-fixture.mjs`: packs the kit, installs **that
+tarball** into `test/fixture`, builds it, and asserts on the emitted HTML and
+CSS. Testing the tarball rather than the working tree is the point — a file
+missing from `files` fails here rather than in a consuming site.
+
+`test/fixture` is the README quickstart, copy-pasted. **When you change the
+quickstart, change the fixture in the same commit** (and vice versa). A README
+nobody executes drifts from reality, and this package exists precisely for the
+case where the details are no longer in anyone's head.
+
+Add an assertion to `verify-fixture.mjs` for every invariant you would otherwise
+have to remember. Note its limits: it proves the *markup* is right, not that the
+*runtime behaviour* is. Consent changes still need the four-path browser check
+above — static output cannot tell you whether a listener actually fires.

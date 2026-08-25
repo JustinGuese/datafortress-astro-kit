@@ -34,10 +34,15 @@ is a piece of plumbing that had already broken by being copied.
 ## 2. Quickstart for a new site
 
 ```sh
-npm install "github:JustinGuese/datafortress-astro-kit#v0.1.0"
+npm install @datafortress/astro-kit
 ```
 
-Always install a **tag**, never `#main`. See §5.
+Requires Astro 7 and Node ≥ 22.12. Tailwind 4 is optional — only
+`styles/tokens.css` needs it, because it declares tokens via `@theme`.
+
+Commit your `package-lock.json`: the caret range in `package.json` is what
+allows a fix to reach you, and the lockfile is what keeps builds reproducible
+until you run `npm update`. See §5.
 
 ### `src/styles/global.css`
 
@@ -304,15 +309,49 @@ every site.
 
 ## 5. Releasing a change
 
+### Test it locally first
+
 ```sh
-cd datafortress-astro-kit
-npm link                                    # once
-cd ../website-example && npm link @datafortress/astro-kit
-# …edit, test against a real site, then:
-cd ../datafortress-astro-kit
-npm version minor                           # or patch / major
-git push && git push --tags
+npm test          # packs the kit, builds test/fixture against the tarball, asserts
 ```
+
+`test/fixture` **is** the quickstart in §2, copy-pasted. It is built against the
+packed tarball rather than the working tree, so a file missing from `files` in
+`package.json` fails here instead of in someone's site. CI runs the same script
+on every push.
+
+To try a change against a real site before releasing:
+
+```sh
+cd datafortress-astro-kit && npm link       # once
+cd ../website-example && npm link @datafortress/astro-kit
+```
+
+### Release
+
+```sh
+npm version minor                           # or patch / major
+git push --follow-tags
+```
+
+Pushing the tag triggers `.github/workflows/publish.yml`, which re-runs CI and
+then publishes to npm with a provenance attestation. Then bump the range in each
+consuming site (`npm update @datafortress/astro-kit`, commit the lockfile).
+
+- **`prepublishOnly` refuses to publish** if the git tag disagrees with
+  `package.json`, if a colour literal has leaked out of `styles/tokens.css`, or
+  if the `exports` map points at a file that is not actually shipped.
+- **While `0.x`, a minor bump may break things.** Removing or renaming an export
+  is breaking for every consumer: grep the sibling sites' `src/` and fix the
+  call sites in the same release.
+- `npm link` is never recorded in `package.json`, so no local path can leak into
+  a commit and break CI.
+
+**First publish only:** the `@datafortress` scope must exist and be owned by the
+publishing account, and the repo needs an `NPM_TOKEN` secret (npmjs.com → Access
+Tokens → Granular, read+write on this package). After the package exists, you
+can switch to npm Trusted Publishing and delete the token — the workflow already
+requests the `id-token: write` permission it needs.
 
 > **`npm link` needs one line in the consuming site's `astro.config.mjs`:**
 >
@@ -326,21 +365,6 @@ git push && git push --tags
 > scoped `<style>` of any linked `.astro` component can never be found. It is
 > harmless to leave the line in permanently — it changes nothing for a normal
 > tarball/git install.
-
-Then bump the pin in each site that should receive it:
-
-```jsonc
-"@datafortress/astro-kit": "github:JustinGuese/datafortress-astro-kit#v0.2.0"
-```
-
-- **Untagged `main` is never installed.** Sites pin tags, so pushing cannot
-  break a deploy that nobody asked to change.
-- **A site picks up a change only when its pin moves.** That is the point:
-  upgrades are per-site and deliberate.
-- `npm link` is not recorded in `package.json` — no `file:` path can leak into a
-  commit and break CI.
-- Removing or renaming an export is a breaking change to every consumer. Grep
-  the sibling sites' `src/` first and update the call sites in the same release.
 
 ## 6. Consumers
 
