@@ -399,6 +399,10 @@ Slots: default (fields), `submit-icon`, `note`.
 **The `success.flag` you set here is the flag `ConversionTracking` listens for** —
 set one without the other and the form works while the conversion goes uncounted.
 
+`submitClass` layers classes onto the submit button — an escape hatch for a
+form whose button should read as a different action, rather than the kit
+growing an `accent` enum.
+
 ### `FaqBlock.astro` — accordion + FAQPage JSON-LD
 
 | prop | type | |
