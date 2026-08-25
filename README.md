@@ -560,7 +560,7 @@ Two things that bite when publishing by hand:
 
 | site | domain | pinned at |
 |---|---|---|
-| `website-pflegenachweisde` | pruefanfrage.de | `^0.2.0` |
+| `website-pflegenachweisde` | pruefanfrage.de | `^0.3.0` |
 | `website-ai-router-de` | konforme-ki.de | *(not yet migrated)* |
 
 Keep this table current: it is how you see the blast radius of a breaking change

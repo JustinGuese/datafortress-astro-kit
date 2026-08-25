@@ -9,9 +9,13 @@ A shared Astro package holding the **invisible correctness layer** of
 DataFortress marketing sites: consent-gated analytics, first-touch attribution,
 SEO head, funnel/conversion tracking, prose CSS, role tokens.
 
-It is consumed by sibling repos in `~/code/websites/` via a **pinned git tag**.
-There is no build step — `.astro` and `.ts` ship as source and the consumer's
-Astro compiles them.
+It is published to npm as `@justinguese/astro-kit` and consumed by sibling repos
+in `~/code/websites/` via a caret range plus a committed lockfile. There is no
+build step — `.astro` and `.ts` ship as source and the consumer's Astro compiles
+them.
+
+Note that a caret range on a `0.x` version locks the MINOR: `^0.2.0` will not
+accept `0.3.0`. Every minor release needs each site's range bumped by hand.
 
 ## Prime directive: the scope boundary
 
@@ -20,8 +24,12 @@ or a feature?**
 
 - **Bug → belongs here.** Consent gating, canonical URLs, attribution, event
   names, JSON-LD shape.
-- **Feature → belongs in the site.** `Hero`, `Pricing`, `Faq`, `SocialProof`,
-  page funnels, palettes, copy.
+- **Feature → belongs in the site.** Page funnels, palettes, copy, and any
+  section whose *layout* is that site's identity.
+
+Section blocks sit across this line and have their own rule — see below. The
+short version: the kit owns a section's data shape, schema and tracking; the
+site owns its copy and anything visually load-bearing.
 
 ### Blocks: the refined rule
 
@@ -129,6 +137,7 @@ fragile seams — treat them as a unit:**
 | `CookieBanner.astro` | `Consent.astro` | `CONSENT_EVENT`, `CONSENT_STORAGE_KEY` (`lib/consent.ts`) |
 | `Attribution.astro` | `TrackingFields.astro` | `TRACK_FIELD_ATTR`, `ATTRIBUTION_FIELDS` (`lib/attribution.ts`) |
 | your markup (`data-cta`) | `FunnelTracking.astro` | the `data-cta` / `data-contact-cta` attributes |
+| `FormBlock.astro` (`success.flag`) | `ConversionTracking.astro` | the `?<flag>=1` query parameter |
 
 **Changing one half means changing the other in the same commit.** A desynced
 pair fails *silently and plausibly*: the banner animates, the form submits, the
