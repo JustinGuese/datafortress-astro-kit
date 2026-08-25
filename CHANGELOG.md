@@ -8,6 +8,40 @@ sibling repos' `src/` first and update the call sites in the same release.
 
 ## [Unreleased]
 
+## [0.2.2] — 2026-08-25
+
+### Added
+
+- **`HeroBlock.astro`** — the above-the-fold hook, unified from the two sites'
+  diverged heroes. Takes **exactly one `cta`**; there is deliberately no
+  `secondaryCta` prop, because both sites' funnel doc says "one CTA above the
+  fold, nothing else clickable" and konforme-ki's hero rendered two competing
+  buttons. The conversion rule is enforced by the type, not by a comment.
+  A subordinate path goes in the `cta-secondary` slot. Content is available as
+  props for the common case and as slots when the copy needs markup; the aside
+  slot takes whatever each site puts beside the headline (a file-folder card, a
+  hash-chain diagram) with no variant flag.
+- **`Field.astro`** — one labelled `input` / `select` / `textarea`. Sites had 24
+  copies of this markup with two drifting class variants.
+- **`ArrowRight.astro`** — the CTA arrow, previously inlined 16 times on
+  pruefanfrage.de alone.
+
+### Changed
+
+- The prime directive in AGENTS.md said *never* add a section component.
+  Revised: share the section's data shape, schema wiring and tracking; let
+  visual divergence happen through named slots or by opting out entirely —
+  never through boolean variant props.
+
+### Note
+
+- `v0.2.1` was tagged by hand rather than with `npm version`, so `package.json`
+  at that tag still read `0.2.0`. The `prepublishOnly` guard refused the publish
+  and nothing reached npm; the tag is inert. Always release with
+  `npm version <patch|minor>` so the tag and the manifest move together.
+
+## [0.2.0] — 2026-08-25
+
 ### Added
 
 - **Consent withdrawal.** Any element with `data-consent-reopen` re-opens the
@@ -31,6 +65,8 @@ sibling repos' `src/` first and update the call sites in the same release.
 - `legalSchema()` / `articleSchema()` rejected an unquoted YAML date
   (`updated: 2026-08-25` parses as `Date`, not `string`). Both spellings are now
   accepted and normalised to `YYYY-MM-DD`.
+- Added `--color-support-bright` and `--color-premium-bright`: both sites carry
+  two shades of those roles.
 
 ## [0.1.0] — 2026-08-25
 
