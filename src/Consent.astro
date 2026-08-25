@@ -13,7 +13,11 @@
  * Pass no IDs and the component still installs the consent defaults and the
  * `gtag` shim — useful for a staging build that should never report.
  */
-import { CONSENT_EVENT, CONSENT_STORAGE_KEY } from './lib/consent';
+import {
+  CONSENT_EVENT,
+  CONSENT_STORAGE_KEY,
+  TRACKER_COOKIE_PREFIXES,
+} from './lib/consent';
 
 interface Props {
   /** GA4 measurement ID, e.g. `G-XXXXXXX`. Omit to load no analytics. */
@@ -28,7 +32,14 @@ const { ga4Id, metaPixelId, anonymizeIp = true } = Astro.props;
 ---
 <script
   is:inline
-  define:vars={{ ga4Id, metaPixelId, anonymizeIp, CONSENT_EVENT, CONSENT_STORAGE_KEY }}
+  define:vars={{
+    ga4Id,
+    metaPixelId,
+    anonymizeIp,
+    CONSENT_EVENT,
+    CONSENT_STORAGE_KEY,
+    TRACKER_COOKIE_PREFIXES,
+  }}
 >
   window.dataLayer = window.dataLayer || [];
   function gtag() { window.dataLayer.push(arguments); }
@@ -68,6 +79,31 @@ const { ga4Id, metaPixelId, anonymizeIp = true } = Astro.props;
     window.fbq('track', 'PageView');
   }
 
+  /**
+   * Consent Mode stops FUTURE storage but leaves whatever is already on the
+   * device. A visitor who withdraws expects the identifiers to be gone, so
+   * clear them explicitly.
+   *
+   * Deleting a cookie requires re-setting it with a past expiry on the exact
+   * path AND domain it was written to — which we do not know — so try the
+   * current host and every parent domain.
+   */
+  function clearTrackerCookies() {
+    const parts = window.location.hostname.split('.');
+    const domains = [undefined];
+    for (let i = 0; i < parts.length - 1; i++) domains.push('.' + parts.slice(i).join('.'));
+
+    document.cookie.split('; ').forEach((entry) => {
+      const name = entry.split('=')[0];
+      if (!TRACKER_COOKIE_PREFIXES.some((prefix) => name.startsWith(prefix))) return;
+      domains.forEach((domain) => {
+        document.cookie =
+          name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/' +
+          (domain ? '; domain=' + domain : '');
+      });
+    });
+  }
+
   function applyConsent(accepted) {
     gtag('consent', 'update', {
       ad_storage: accepted ? 'granted' : 'denied',
@@ -78,7 +114,12 @@ const { ga4Id, metaPixelId, anonymizeIp = true } = Astro.props;
     if (accepted) {
       loadGA4();
       loadMetaPixel();
+      return;
     }
+    // Withdrawal. The already-injected scripts cannot be unloaded from this
+    // page view — Consent Mode is what silences them — but their cookies can go
+    // now, and a reload starts clean because nothing re-injects them.
+    clearTrackerCookies();
   }
 
   window.addEventListener(CONSENT_EVENT, (e) => applyConsent(e.detail.accepted));

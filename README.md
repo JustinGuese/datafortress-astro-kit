@@ -33,6 +33,23 @@ is a piece of plumbing that had already broken by being copied.
 
 ## 2. Quickstart for a new site
 
+**Fastest path — clone the starter:**
+
+```sh
+npx degit JustinGuese/datafortress-astro-kit/examples/starter my-site
+cd my-site && npm install
+```
+
+You get a working site with the layout wired up, a themed `global.css`, a typed
+`site.ts`, a `legal` content collection with its route, and a consent-withdrawal
+link already in the footer. Edit `src/config/site.ts` and
+`src/styles/global.css`, then delete the placeholder page.
+
+`examples/starter` is also this repo's CI fixture — it is built and asserted on
+for every push, so the thing you clone is known to work.
+
+**Or add the kit to an existing Astro site:**
+
 ```sh
 npm install @datafortress/astro-kit
 ```
@@ -190,6 +207,22 @@ Renders the banner and records the decision. **It does not gate anything itself.
 | `privacyHref` | `string` | required |
 | `strings` | `Partial<CookieBannerStrings>` | English defaults |
 
+**Withdrawal is not optional.** Put this anywhere — footer, privacy policy, even
+inside Markdown:
+
+```html
+<button type="button" data-consent-reopen>Cookie-Einstellungen ändern</button>
+```
+
+Any element with `data-consent-reopen` re-opens the banner. Without one, the
+banner is shown **once per browser, ever**, and a visitor who accepted has no
+way back — which GDPR Art. 7(3) does not allow. Withdrawing also deletes the
+`_ga*` / `_fb*` cookies already on the device: Consent Mode stops future storage
+but leaves what is there, which is not what someone clicking "decline" expects.
+
+Focus moves into the banner when it opens and returns to the trigger when it
+closes.
+
 > **Contract with `Consent.astro`:** they communicate only via the
 > `cookie-consent-updated` window event and the `cookie-consent` localStorage
 > key, both defined in `src/lib/consent.ts`. Render the banner without `Consent`
@@ -277,6 +310,10 @@ Carries `data-cta`, so `FunnelTracking` picks it up automatically.
 - **`lib/collections`** — `legalSchema()`, `articleSchema(categories)` for
   `content.config.ts`. Pass your own category slugs; a typo then fails the build
   instead of silently dropping an article out of the nav.
+- **`lib/site`** — `defineSiteConfig()` types the one config file every site
+  writes (autocomplete, typo'd keys caught at build, identical shape across
+  repos) and `formspreeAction(id)` builds the form URL. Everything in that
+  object compiles into public HTML — never put a secret in it.
 - **`lib/consent`**, **`lib/attribution`** — the shared attribute/event/key
   names. Import these; never retype the string literals.
 
@@ -347,11 +384,21 @@ consuming site (`npm update @datafortress/astro-kit`, commit the lockfile).
 - `npm link` is never recorded in `package.json`, so no local path can leak into
   a commit and break CI.
 
-**First publish only:** the `@datafortress` scope must exist and be owned by the
-publishing account, and the repo needs an `NPM_TOKEN` secret (npmjs.com → Access
-Tokens → Granular, read+write on this package). After the package exists, you
-can switch to npm Trusted Publishing and delete the token — the workflow already
-requests the `id-token: write` permission it needs.
+**Publishing uses npm Trusted Publishing (OIDC) — there is no token in this
+repo.** The workflow's `id-token: write` permission lets npm exchange a GitHub
+identity token for a short-lived, single-publish credential, and attach
+provenance automatically. Nothing to rotate.
+
+**First publish is manual, once**, because the trusted-publisher setting lives
+on a package page that does not exist yet:
+
+1. Confirm you own the `@datafortress` scope on npm.
+2. `npm login && npm publish` locally.
+3. On npmjs.com → the package → Settings → Trusted publisher, add: GitHub
+   Actions, `JustinGuese/datafortress-astro-kit`, workflow `publish.yml`, no
+   environment.
+
+Every tag after that publishes through CI with no secret involved.
 
 > **`npm link` needs one line in the consuming site's `astro.config.mjs`:**
 >

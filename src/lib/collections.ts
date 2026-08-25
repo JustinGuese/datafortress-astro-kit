@@ -25,11 +25,26 @@
  */
 import { z } from 'astro:schema';
 
+/**
+ * A `YYYY-MM-DD` string, accepting either YAML spelling.
+ *
+ * Unquoted `updated: 2026-08-25` is parsed by YAML as a **Date**, while
+ * `updated: "2026-08-25"` stays a string — so a plain `z.string()` rejects the
+ * more natural of the two with an error that says nothing useful
+ * ("Expected type string, received object"). Accept both and always hand back a
+ * string, so authors never have to know this.
+ */
+const isoDate = z
+  .union([z.string(), z.date()])
+  .transform((value) =>
+    value instanceof Date ? value.toISOString().slice(0, 10) : value,
+  );
+
 export function legalSchema() {
   return z.object({
     title: z.string(),
-    /** ISO date of the last substantive revision. */
-    updated: z.string().optional(),
+    /** Date of the last substantive revision. */
+    updated: isoDate.optional(),
   });
 }
 
@@ -48,8 +63,8 @@ export function articleSchema<T extends readonly [string, ...string[]]>(categori
     /** The single search intent this article targets. */
     keyword: z.string(),
     category: z.enum(categories),
-    /** ISO date. */
-    updated: z.string(),
+    /** Date of the last substantive revision. */
+    updated: isoDate,
     /** Minutes. */
     readingTime: z.number(),
     /** Order within the category nav; lower first. */

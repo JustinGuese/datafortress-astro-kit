@@ -33,19 +33,27 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
+      # Trusted Publishing needs npm >= 11.5.1; the Node 22 image ships npm 10.
+      - name: Use an npm that speaks OIDC
+        run: npm install -g npm@latest
+
+      # No NODE_AUTH_TOKEN. npm sees the Actions OIDC env (that is what the
+      # `id-token: write` permission above grants), exchanges the identity token
+      # for a short-lived, single-publish credential, and attaches provenance
+      # automatically. Nothing to rotate: granular tokens expire after 90 days
+      # at most, an OIDC exchange expires in minutes.
+      #
+      # One-time setup on npmjs.com → the package → Settings → Trusted
+      # publisher: GitHub Actions, JustinGuese/datafortress-astro-kit,
+      # workflow `publish.yml`, no environment.
+      #
+      # Chicken-and-egg: that page only exists once the package does. Publish
+      # the first version by hand (`npm login && npm publish` locally), then
+      # configure the trusted publisher, and every tag after that goes through
+      # here with no secret in the repo.
       - name: Publish
         run: npm publish
-        env:
-          # Create at npmjs.com → Access Tokens → Granular, scoped to
-          # @datafortress/astro-kit with read+write, then add it as a repo
-          # secret named NPM_TOKEN.
-          #
-          # Alternative worth switching to once the package exists: npm Trusted
-          # Publishing. Configure this repo + workflow as a trusted publisher on
-          # the package settings page and the token can be deleted entirely —
-          # `id-token: write` above is already what it needs.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          # `access` and `provenance` come from publishConfig in package.json.
+        # `access` and `provenance` come from publishConfig in package.json.
 
       - name: Create the GitHub release
         env:

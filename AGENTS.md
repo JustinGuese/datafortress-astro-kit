@@ -121,6 +121,19 @@ site's GA4 property. Say so explicitly and get confirmation before doing it.
 - **Returning visitors never see the banner**, so they never fire the event.
   `Consent.astro` re-applies the stored decision on load. Any new
   consent-dependent feature needs the same path.
+- **A consent banner with no withdrawal path is non-compliant** (GDPR Art.
+  7(3)), and the first version of this package shipped exactly that: the banner
+  rendered only when localStorage was empty, so an accept was permanent. Hence
+  `data-consent-reopen`. Every consuming site must place one; the starter has it
+  in the footer.
+- **Consent Mode does not delete existing cookies.** Withdrawal has to clear
+  `_ga*` / `_fb*` explicitly, and deleting a cookie means re-setting it with a
+  past expiry on the right path *and* domain — which we cannot know, so
+  `clearTrackerCookies()` tries the host and every parent domain.
+- **Unquoted YAML dates are `Date`, not `string`.** `updated: 2026-08-25` parses
+  as an object and a plain `z.string()` rejects it with an unhelpful message.
+  `lib/collections.ts` accepts both spellings and normalises. Do the same for
+  any new date field.
 - **Astro view transitions re-run nothing.** Components with listeners re-init
   on `astro:after-swap`. New client scripts need the same, or they die after the
   first client-side navigation.
@@ -178,17 +191,20 @@ While `0.x`, a minor bump may break things; say so in `CHANGELOG.md`.
 
 ## Testing
 
-`npm test` runs `scripts/verify-fixture.mjs`: packs the kit, installs **that
-tarball** into `test/fixture`, builds it, and asserts on the emitted HTML and
-CSS. Testing the tarball rather than the working tree is the point — a file
+`npm test` runs `scripts/verify-starter.mjs`: packs the kit, installs **that
+tarball** into `examples/starter`, builds it, and asserts on the emitted HTML
+and CSS. Testing the tarball rather than the working tree is the point — a file
 missing from `files` fails here rather than in a consuming site.
 
-`test/fixture` is the README quickstart, copy-pasted. **When you change the
-quickstart, change the fixture in the same commit** (and vice versa). A README
-nobody executes drifts from reality, and this package exists precisely for the
-case where the details are no longer in anyone's head.
+**`examples/starter` does three jobs at once**: it is the README quickstart, the
+CI fixture, and the `degit` target new sites are cloned from. That is deliberate
+— one artifact cannot drift from itself. **A change to any of the three is a
+change to all three, in the same commit.**
 
-Add an assertion to `verify-fixture.mjs` for every invariant you would otherwise
+Add an assertion to `verify-starter.mjs` for every invariant you would otherwise
 have to remember. Note its limits: it proves the *markup* is right, not that the
-*runtime behaviour* is. Consent changes still need the four-path browser check
-above — static output cannot tell you whether a listener actually fires.
+*runtime behaviour* is. Consent changes still need the browser check above —
+static output cannot tell you whether a listener actually fires.
+
+The starter has already earned its keep twice: it caught `npm link` breaking
+scoped styles, and it caught `legalSchema` rejecting an unquoted YAML date.

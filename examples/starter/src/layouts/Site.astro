@@ -45,6 +45,17 @@ const {
   <body class="bg-canvas text-ink font-sans">
     <main><slot /></main>
 
+    <footer style="padding:2rem 1rem;border-top:1.5px solid var(--color-line);font-size:.875rem">
+      <a href="/datenschutz">Datenschutzerklärung</a>
+      {/*
+        GDPR Art. 7(3): withdrawing consent must be as easy as giving it.
+        Without a trigger like this the banner appears once per browser, ever.
+      */}
+      <button type="button" data-consent-reopen style="margin-left:1rem;text-decoration:underline;cursor:pointer">
+        Cookie-Einstellungen
+      </button>
+    </footer>
+
     <CookieBanner privacyHref={site.privacyHref} strings={{
       message: 'Wir verwenden Cookies, um unseren Datenverkehr zu analysieren.',
       privacyLinkLabel: 'Datenschutzerklärung',

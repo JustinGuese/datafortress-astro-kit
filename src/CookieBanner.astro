@@ -11,6 +11,7 @@
  */
 import {
   CONSENT_EVENT,
+  CONSENT_REOPEN_ATTR,
   CONSENT_STORAGE_KEY,
 } from './lib/consent';
 import {
@@ -149,7 +150,7 @@ const t = { ...defaultCookieBannerStrings, ...strings };
   }
 </style>
 
-<script is:inline define:vars={{ CONSENT_EVENT, CONSENT_STORAGE_KEY }}>
+<script is:inline define:vars={{ CONSENT_EVENT, CONSENT_STORAGE_KEY, CONSENT_REOPEN_ATTR }}>
   (() => {
     function initBanner() {
       const banner = document.getElementById('df-cookie-banner');
@@ -164,11 +165,29 @@ const t = { ...defaultCookieBannerStrings, ...strings };
         /* storage blocked; show the banner but expect the choice not to stick */
       }
 
-      if (stored === null) {
+      // Focus is moved into the banner on open so keyboard and screen-reader
+      // users are not left tabbing through the page behind a modal-looking bar.
+      let restoreFocusTo = null;
+
+      const open = () => {
         banner.hidden = false;
         // Two frames so the transition has a starting value to animate from.
-        requestAnimationFrame(() => requestAnimationFrame(() => banner.classList.add('is-open')));
-      }
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          banner.classList.add('is-open');
+          acceptBtn.focus({ preventScroll: true });
+        }));
+      };
+
+      const close = () => {
+        banner.classList.remove('is-open');
+        setTimeout(() => { banner.hidden = true; }, 400);
+        if (restoreFocusTo && document.contains(restoreFocusTo)) {
+          restoreFocusTo.focus({ preventScroll: true });
+        }
+        restoreFocusTo = null;
+      };
+
+      if (stored === null) open();
 
       const decide = (accepted) => {
         try {
@@ -179,12 +198,23 @@ const t = { ...defaultCookieBannerStrings, ...strings };
         window.dispatchEvent(
           new CustomEvent(CONSENT_EVENT, { detail: { accepted } }),
         );
-        banner.classList.remove('is-open');
-        setTimeout(() => { banner.hidden = true; }, 400);
+        close();
       };
 
       acceptBtn.addEventListener('click', () => decide(true));
       declineBtn.addEventListener('click', () => decide(false));
+
+      // Withdrawal path. Without this the banner is shown once per browser ever
+      // and an earlier "accept" is irreversible — which GDPR Art. 7(3) does not
+      // allow. Delegated, so the trigger can live anywhere, including in a
+      // Markdown privacy policy.
+      document.addEventListener('click', (event) => {
+        const trigger = event.target.closest?.('[' + CONSENT_REOPEN_ATTR + ']');
+        if (!trigger || banner.classList.contains('is-open')) return;
+        event.preventDefault();
+        restoreFocusTo = trigger;
+        open();
+      });
     }
 
     initBanner();

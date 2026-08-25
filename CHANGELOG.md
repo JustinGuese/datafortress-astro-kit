@@ -8,6 +8,23 @@ sibling repos' `src/` first and update the call sites in the same release.
 
 ## [Unreleased]
 
+### Added
+
+- **Consent withdrawal.** Any element with `data-consent-reopen` re-opens the
+  banner, and declining now clears the `_ga*` / `_fb*` cookies already on the
+  device. Previously the banner appeared once per browser and an accept was
+  permanent — non-compliant with GDPR Art. 7(3). The banner also manages focus
+  on open/close.
+- `lib/site` — `defineSiteConfig()` and `formspreeAction()`.
+- `examples/starter` — the `degit` target for new sites, which is also the CI
+  fixture and the README quickstart, so the three cannot drift.
+
+### Fixed
+
+- `legalSchema()` / `articleSchema()` rejected an unquoted YAML date
+  (`updated: 2026-08-25` parses as `Date`, not `string`). Both spellings are now
+  accepted and normalised to `YYYY-MM-DD`.
+
 ## [0.1.0] — 2026-08-25
 
 Initial release. Extracted from `website-pflegenachweisde` and

@@ -23,13 +23,13 @@ jobs:
       # is what makes this a real test: a file missing from `files` in
       # package.json fails here rather than in a consuming site.
       - name: Build the fixture against the packed tarball and assert on its output
-        run: node scripts/verify-fixture.mjs
+        run: node scripts/verify-starter.mjs
 
       # Must run after the step above, which is what installs the kit tarball
       # into the fixture. `npm run check` (not `npx astro check`) because npx
       # would prompt to install @astrojs/check and hang the runner.
       - name: Type-check the fixture against the kit's shipped types
-        working-directory: test/fixture
+        working-directory: examples/starter
         run: npm run check
 
       - name: Publish checks (colour literals, exports/files agreement)

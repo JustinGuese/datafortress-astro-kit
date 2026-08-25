@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Packs the kit, installs that tarball into test/fixture, builds it, and
+ * Packs the kit, installs that tarball into examples/starter, builds it, and
  * asserts on the emitted HTML/CSS.
  *
  * It installs the PACKED TARBALL rather than linking the working tree, so the
@@ -18,7 +18,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const fixture = join(root, 'test', 'fixture');
+const fixture = join(root, 'examples', 'starter');
 
 const run = (cmd, args, cwd) =>
   execFileSync(cmd, args, { cwd, stdio: 'pipe', encoding: 'utf8' });
@@ -74,6 +74,15 @@ try {
   check(
     'banner and loader agree on the event name',
     (html.match(/cookie-consent-updated/g) || []).length >= 2,
+  );
+  check(
+    'a withdrawal trigger exists (GDPR Art. 7(3))',
+    html.includes('data-consent-reopen'),
+    'consent must be as easy to withdraw as to give',
+  );
+  check(
+    'withdrawal clears already-set tracker cookies',
+    html.includes('clearTrackerCookies'),
   );
 
   console.log('\nscoped styles survive the package boundary');

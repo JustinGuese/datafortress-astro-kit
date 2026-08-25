@@ -1,0 +1,33 @@
+---
+/**
+ * Renders every entry in the `legal` collection at its own URL
+ * (`/datenschutz`, `/impressum`, `/agb`, …). One route for all of them, so
+ * adding a legal page means adding a Markdown file and nothing else.
+ *
+ * `.article-body` comes from the kit's prose.css.
+ */
+import { getCollection, render } from 'astro:content';
+import Site from '../layouts/Site.astro';
+import { site } from '../config/site';
+
+export async function getStaticPaths() {
+  const pages = await getCollection('legal');
+  return pages.map((page) => ({ params: { slug: page.id }, props: { page } }));
+}
+
+const { page } = Astro.props;
+const { Content } = await render(page);
+---
+<Site title={`${page.data.title} | ${site.name}`} description={page.data.title}>
+  <article style="max-width:44rem;margin-inline:auto;padding:3rem 1rem">
+    <h1 class="font-display" style="font-size:2.25rem;font-weight:800">{page.data.title}</h1>
+    {page.data.updated && (
+      <p style="margin-top:.5rem;font-family:var(--font-mono);font-size:.8rem;color:var(--color-ink-faint)">
+        Stand: {page.data.updated}
+      </p>
+    )}
+    <div class="article-body" style="margin-top:2rem">
+      <Content />
+    </div>
+  </article>
+</Site>
