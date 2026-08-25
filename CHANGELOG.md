@@ -19,6 +19,13 @@ sibling repos' `src/` first and update the call sites in the same release.
 - `examples/starter` — the `degit` target for new sites, which is also the CI
   fixture and the README quickstart, so the three cannot drift.
 
+### Changed
+
+- Consumers must **not** add `@source` for this package. It is unnecessary —
+  every component uses scoped styles — and it makes Tailwind emit unused
+  utilities: on pruefanfrage.de the built CSS went 41 kB → 75 kB with no visual
+  change. Documented in README §2 and AGENTS.md.
+
 ### Fixed
 
 - `legalSchema()` / `articleSchema()` rejected an unquoted YAML date
