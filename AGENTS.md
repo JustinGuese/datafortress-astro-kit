@@ -179,6 +179,126 @@ Cover all four paths every time consent is touched:
 For tracking changes, click a CTA and assert exactly one event lands in
 `dataLayer` — one, not zero (no listener) and not two (duplicate listeners).
 
+## Migrating an existing site onto the kit
+
+Written after migrating pruefanfrage.de (20 files, 266 token renames). Every
+item below is something that actually went wrong or actually saved the job.
+`website-ai-router-de` is next and hits all of it.
+
+### The one technique that makes this safe
+
+**Snapshot `dist/` before touching anything, then diff VISIBLE TEXT, not HTML.**
+Attribute and class churn is the whole point of the migration, so an HTML diff
+is unreadable noise. Strip scripts, styles, comments and tags, then compare
+word-by-word:
+
+```sh
+strip() { python3 -c "
+import re,sys; s=open(sys.argv[1],encoding='utf8').read()
+s=re.sub(r'<script.*?</script>','',s,flags=re.S); s=re.sub(r'<style.*?</style>','',s,flags=re.S)
+s=re.sub(r'<!--.*?-->','',s,flags=re.S); s=re.sub(r'<[^>]*>',' ',s)
+print(' '.join(s.split()))" "$1"; }
+for f in $(cd dist && find . -name '*.html'); do
+  diff <(strip "$BASE/$f" | tr ' ' '\n') <(strip "dist/$f" | tr ' ' '\n')
+done
+```
+
+The target is **only your intended changes appear**, on every page. On
+pruefanfrage.de the final diff was exactly two strings across 16 pages. Anything
+else in that output is a regression you just caught for free.
+
+Follow it with a CSS *declaration-set* diff (`tr '}' '\n'`, extract
+`prop:value`, `sort -u`): renamed tokens must keep identical values, so the only
+new entries should be the kit's `.df-banner` / `.df-sticky` rules.
+
+### Order of operations
+
+1. **Fix consent/tracking in place first, as its own commit.** Never entangle a
+   compliance fix with a refactor — you want to be able to ship or revert it
+   alone.
+2. `site.ts` → token rename → `global.css` split → `Site.astro` → contracts →
+   component renames.
+3. Verify after **each** stage, not at the end. A visible-text diff that was
+   clean an hour ago tells you exactly which stage broke something.
+
+### Renaming tokens: script it
+
+Do not hand-edit and do not hand this to a model — it is a pure substitution and
+a regex is both faster and verifiable. Two rules:
+
+- **Longest token first.** `paper-deep` must be replaced before `paper`, or you
+  get `canvas-deep` → `canvasdeep` style corruption.
+- **Anchor to Tailwind utility prefixes and `var(--color-X)`**, never bare
+  words: `\b(bg|text|border|from|to|via|ring|outline|decoration|fill|stroke|shadow|divide|accent|caret|placeholder)-(TOKEN)\b`.
+  A bare `\bfile\b` would rewrite German prose.
+
+**The regex will not catch three things** — grep for each separately:
+
+- **Site-level class systems named after old tokens** (`.tag-stamp`,
+  `.tag-gold`). They are not utilities, so the prefix pattern misses them.
+- **Discriminator values** in TS (`accent: 'stamp' as const`) and the prop
+  unions that consume them (`accent?: 'stamp' | 'file'`).
+- **Dynamically built class names** (`` `tag-${kategorie.accent}` ``) — grep for
+  the *prefix*, never the whole class, or you will not find them at all.
+
+### Traps that cost real time
+
+- **`'${site.url}'` in single quotes renders the placeholder literally.** A
+  find/replace of a hardcoded domain lands inside ordinary quoted strings (JSON-LD
+  objects especially) where it is *not* a template literal. Swap the outer quotes
+  to backticks. Detect with a regex for a quoted string containing `${`.
+  Be careful writing that grep in a shell — a naive attempt returns zero hits
+  because of shell quoting, and zero hits looks like success.
+- **A scripted replace does not add imports.** Files referencing `site.` without
+  `import { site }` fail at *prerender* with `ReferenceError: site is not
+  defined` — not at build time, so the error arrives late and points at a chunk
+  file. Sweep for `\bsite\.\w` and inject the import with the right `../` depth.
+- **Import paths come in several forms.** `./X.astro`, `../components/X.astro`,
+  `../../components/X.astro`. Handling one form and missing the others is the
+  most common cause of `UNRESOLVED_IMPORT` mid-migration. Match on the basename.
+- **Do scripted edits BEFORE hand edits.** A script keyed on
+  `const formspreeId = …` silently skips the one file where you already deleted
+  that line by hand. Re-grep for the target after every scripted pass.
+- **Delete the site's local copies** of `CookieBanner.astro` and
+  `TrackingFields.astro` in the same commit that adds the kit's. Two banners
+  render two banners; two attribution field sets submit the last one.
+- **`astro check` catches what the build ships.** Renaming a prop union
+  (`'stamp' | 'file'` → `'accent' | 'support'`) leaves callers passing the old
+  value; the build succeeds and ships a wrongly-coloured button. Run it before
+  declaring done — it found exactly that on pruefanfrage.de.
+
+### Contract renames to apply site-wide
+
+| site's old form | kit's form |
+|---|---|
+| `data-tier-cta="x"` | `data-cta="x"` |
+| `<TrackingFields tier={…} />` | `<TrackingFields variant={…} />` |
+| per-page CTA listeners | delete — `FunnelTracking` renders once in the layout |
+| per-page Formspree success blocks | `ConversionTracking states={[…]}` |
+| inline Organization JSON-LD | `organizationSchema()` via `SeoHead schemas={[…]}` |
+| `.article-body` CSS in `global.css` | delete — import the kit's `prose.css` |
+
+Keep `ctaEventName` set to whatever the site's GA4 property already records
+(pruefanfrage.de passes `tier_cta_click`) so historical reporting survives.
+
+### Splitting `global.css`
+
+Three destinations. The site keeps only the middle one:
+
+- **Kit**: `@theme` role tokens, `.article-body` prose → `@import` them.
+- **Site**: the brand's own device classes (pruefanfrage's `.tag*`,
+  `.mark-redact`, `stamp-in` keyframes). These are identity, not plumbing.
+- **Site `@theme`**: the palette — role names from the kit, values from the
+  brand. This is the only file with hexes.
+
+Do **not** add `@source` for this package (see Hard rules #5).
+
+### While the kit is npm-linked
+
+The consuming site needs `vite: { resolve: { preserveSymlinks: true } }` in
+`astro.config.mjs` or its build dies on the kit's scoped styles. Harmless to
+leave in permanently.
+
 ## Releasing
 
 `npm version <patch|minor|major>` then `git push --follow-tags`. The tag
