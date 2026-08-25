@@ -94,7 +94,8 @@ try {
 
   console.log('\nscoped styles survive the package boundary');
   // If these are missing, a consumer gets invisible components and no error.
-  for (const cls of ['.df-banner', '.df-sticky', '.df-hero', '.df-field', '.article-body']) {
+  for (const cls of ['.df-banner', '.df-sticky', '.df-hero', '.df-field', '.df-faq',
+                     '.df-tier', '.df-matrix', '.df-scarcity', '.df-form__submit', '.article-body']) {
     check(`${cls} is emitted into the built CSS`, css.includes(cls));
   }
   check(
@@ -117,6 +118,17 @@ try {
   check("HeroBlock's CTA carries its analytics label", html.includes('data-cta="hero"'));
   check('HeroBlock renders exactly one primary button', (html.match(/df-hero__btn/g) || []).length === 1,
         'a second one means someone reintroduced a secondaryCta');
+
+  console.log('\nblocks');
+  check('FaqBlock emits FAQPage JSON-LD', html.includes('"@type":"FAQPage"'));
+  check('every FAQ answer is visible on the page, not only in the markup',
+        (html.match(/It is, and this is the answer/g) || []).length >= 2,
+        'once in the JSON-LD and once in the DOM; markup-only answers are a manual-action risk');
+  check('PricingMatrix renders a screen-reader caption', html.includes('df-matrix__caption'));
+  check('a missing matrix value renders as an em dash, not blank', html.includes('>—<'));
+  check('tier CTAs carry their id as the analytics label', html.includes('data-cta="pro"'));
+  check('FormBlock wires the Formspree _next redirect',
+        html.includes('name="_next"') && html.includes('newsletter=1'));
 
   console.log('\nsitemap');
   const sitemap = readFileSync(join(dist, 'sitemap-0.xml'), 'utf8');

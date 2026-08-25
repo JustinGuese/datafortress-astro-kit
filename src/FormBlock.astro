@@ -1,0 +1,90 @@
+---
+/**
+ * A Formspree form with all its plumbing wired.
+ *
+ * Every form on every site repeats the same five things: the action URL, a
+ * hidden `form` name so the inbox is separable, the `_next` redirect that
+ * carries a success flag back to the page, `TrackingFields`, and a submit
+ * button. On pruefanfrage.de that boilerplate appeared five times and had
+ * already drifted — one form was missing its honeypot, another its `_next`.
+ *
+ * Put the fields in the default slot. The button, the hidden inputs and the
+ * redirect are handled here.
+ *
+ * Pairs with `ConversionTracking.astro` on the receiving page: the `success`
+ * flag set here is the flag it listens for.
+ */
+import TrackingFields from './TrackingFields.astro';
+import { formspreeAction } from './lib/site';
+
+interface Props {
+  /** Formspree form id — the part after `/f/`. */
+  formspreeId: string;
+  /** Which offer/form this is. Becomes the submission `variant` and `data-cta`. */
+  variant: string;
+  /** Hidden `form` field, so one Formspree inbox stays separable. Defaults to `variant`. */
+  name?: string;
+  /**
+   * Where Formspree returns to. `flag` becomes `?<flag>=1`, `anchor` the hash.
+   * Omit to let Formspree use its own thank-you page.
+   */
+  success?: { flag: string; anchor?: string };
+  submitLabel: string;
+  /** Extra classes on the <form>, for the site's own card styling. */
+  class?: string;
+}
+
+const {
+  formspreeId,
+  variant,
+  name = variant,
+  success,
+  submitLabel,
+  class: className = '',
+} = Astro.props;
+
+const landingPage = Astro.url.pathname;
+const next = success
+  ? `${landingPage}?${success.flag}=1${success.anchor ? `#${success.anchor}` : ''}`
+  : undefined;
+---
+<form action={formspreeAction(formspreeId)} method="POST" class={className}>
+  <input type="hidden" name="form" value={name} />
+  {next && <input type="hidden" name="_next" value={next} />}
+  <TrackingFields variant={variant} />
+
+  <slot />
+
+  <button type="submit" data-cta={variant} class="df-form__submit">
+    {submitLabel}
+    <slot name="submit-icon" />
+  </button>
+
+  <slot name="note" />
+</form>
+
+<style>
+  .df-form__submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-canvas);
+    background: var(--color-accent);
+    box-shadow: 4px 4px 0 0 var(--color-ink);
+    transition: background-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  }
+  .df-form__submit:hover {
+    background: color-mix(in srgb, var(--color-accent) 88%, black);
+    box-shadow: 2px 2px 0 0 var(--color-ink);
+    transform: translate(2px, 2px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .df-form__submit { transition: none; }
+    .df-form__submit:hover { transform: none; }
+  }
+</style>

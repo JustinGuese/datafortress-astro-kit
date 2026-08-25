@@ -1,0 +1,122 @@
+---
+/**
+ * Capacity scarcity — the honest kind.
+ *
+ * Only use this where intake really is capped: an unbacked claim is misleading
+ * advertising (§5 UWG in DE), and a compliance-minded buyer is exactly the
+ * audience that will ask you to justify the number.
+ *
+ * Deliberately NOT a countdown timer. A clock that restarts on reload reads as
+ * a trick and costs more trust than it buys urgency. This shows a count you can
+ * actually defend, and the site is responsible for keeping `taken` truthful.
+ *
+ * `layout` is an enum rather than a boolean, and it is the one place a
+ * presentation switch is justified: both sites independently arrived at the
+ * same two densities of the *same content* — a badge for the hero line, a band
+ * for its own section. That is a density choice, not two different designs, and
+ * it does not multiply the way feature flags do.
+ */
+interface Props {
+  /** How many slots exist per period. */
+  total: number;
+  /** How many are gone. Keep this honest. */
+  taken: number;
+  layout?: 'badge' | 'band';
+  /** Short form, e.g. "Noch {left} von {total} Plätzen im {period}". */
+  badgeText: string;
+  /** Headline for the band layout, e.g. "freie Plätze im {period}". */
+  bandTitle?: string;
+  /** Explanation under the band headline — why the cap is real. */
+  bandBody?: string;
+  /** Substituted for `{period}`. Pass a month name, quarter, whatever fits. */
+  period?: string;
+  class?: string;
+}
+
+const {
+  total,
+  taken,
+  layout = 'badge',
+  badgeText,
+  bandTitle,
+  bandBody,
+  period = '',
+  class: className = '',
+} = Astro.props;
+
+const left = Math.max(0, total - taken);
+const fill = (s: string) =>
+  s.replace(/\{left\}/g, String(left)).replace(/\{total\}/g, String(total)).replace(/\{period\}/g, period);
+---
+{layout === 'badge' ? (
+  <span class:list={['df-scarcity__badge', className]}>
+    <span class="df-scarcity__dot" aria-hidden="true"></span>
+    {fill(badgeText)}
+  </span>
+) : (
+  <div class:list={['df-scarcity__band', className]}>
+    <span class="df-scarcity__count">{left}</span>
+    <div>
+      {bandTitle && <p class="df-scarcity__title">{fill(bandTitle)}</p>}
+      {bandBody && <p class="df-scarcity__body">{fill(bandBody)}</p>}
+    </div>
+  </div>
+)}
+
+<style>
+  .df-scarcity__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.3em 0.65em;
+    border: 1.5px solid currentColor;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+    white-space: nowrap;
+    color: var(--color-signal, var(--color-accent));
+  }
+  .df-scarcity__dot {
+    height: 0.375rem;
+    width: 0.375rem;
+    flex-shrink: 0;
+    background: currentColor;
+  }
+
+  .df-scarcity__band {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.25rem;
+    border: 1.5px solid var(--color-signal, var(--color-accent));
+    background: var(--color-canvas);
+  }
+  @media (min-width: 640px) {
+    .df-scarcity__band { flex-direction: row; align-items: center; padding: 1.5rem; }
+  }
+  .df-scarcity__count {
+    flex-shrink: 0;
+    font-family: var(--font-display, system-ui, sans-serif);
+    font-size: 2.25rem;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--color-signal, var(--color-accent));
+    font-variant-numeric: tabular-nums;
+  }
+  .df-scarcity__title {
+    font-family: var(--font-display, system-ui, sans-serif);
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--color-ink);
+  }
+  .df-scarcity__body {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-ink-soft);
+  }
+</style>

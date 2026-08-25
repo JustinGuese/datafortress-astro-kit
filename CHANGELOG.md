@@ -8,6 +8,35 @@ sibling repos' `src/` first and update the call sites in the same release.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-08-25
+
+### Added
+
+Section blocks. The kit now covers most of a landing page, so a new site is
+mostly a copy file plus a palette.
+
+- **`FormBlock.astro`** — a Formspree form with its plumbing wired: action,
+  hidden `form` name, the `_next` redirect carrying a success flag,
+  `TrackingFields`, and the submit button. That boilerplate appeared five times
+  on pruefanfrage.de and had already drifted — one form was missing its
+  honeypot, another its `_next`.
+- **`FaqBlock.astro`** — `<details>` accordion plus FAQPage JSON-LD emitted from
+  the *same array*, so markup whose answers are not visible on the page (a
+  manual-action risk) is impossible to write.
+- **`PricingCards.astro`** and **`PricingMatrix.astro`** over a shared
+  `lib/pricing` `Tier` type. Two layouts rather than one component with a
+  `layout` flag: pruefanfrage uses a row-wise matrix, konforme-ki column cards,
+  and those are genuinely different presentations of the same data. The matrix
+  keys `values` by `Tier.id`, so renaming a tier is a type error instead of a
+  silently blank column, and a missing value renders as an em dash — itself
+  information. Its `caption` is required, because a comparison table is
+  meaningless to a screen reader without one.
+- **`ScarcityBlock.astro`** — honest capacity scarcity. Deliberately not a
+  countdown: a clock that restarts on reload reads as a trick. `layout` is the
+  one justified presentation switch, since both sites independently arrived at
+  the same two densities of the same content.
+- `Tier.badge` for a "most popular" label.
+
 ## [0.2.2] — 2026-08-25
 
 ### Added

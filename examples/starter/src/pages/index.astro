@@ -1,8 +1,27 @@
 ---
 import Site from '../layouts/Site.astro';
-import TrackingFields from '@justinguese/astro-kit/TrackingFields.astro';
 import HeroBlock from '@justinguese/astro-kit/HeroBlock.astro';
 import Field from '@justinguese/astro-kit/Field.astro';
+import FormBlock from '@justinguese/astro-kit/FormBlock.astro';
+import FaqBlock from '@justinguese/astro-kit/FaqBlock.astro';
+import PricingMatrix from '@justinguese/astro-kit/PricingMatrix.astro';
+import PricingCards from '@justinguese/astro-kit/PricingCards.astro';
+import ScarcityBlock from '@justinguese/astro-kit/ScarcityBlock.astro';
+import type { CompareRow, Tier } from '@justinguese/astro-kit/lib/pricing';
+
+const tiers = [
+  { id: 'free', name: 'Free', price: '€0', priceNote: 'forever', cta: { label: 'Start', href: '#signup' },
+    features: ['One thing', 'Another thing'] },
+  { id: 'pro', name: 'Pro', price: '€49', priceNote: 'per month', highlight: true, badge: 'Most popular',
+    cta: { label: 'Choose Pro', href: '#signup' }, features: ['Everything in Free', 'The good stuff'] },
+  { id: 'team', name: 'Team', price: '€199', priceNote: 'per month', cta: { label: 'Talk to us', href: '/contact' },
+    features: ['Everything in Pro', 'Seats'] },
+] satisfies Tier[];
+
+const rows = [
+  { label: 'Seats', values: { free: '1', pro: '3', team: 'unlimited' } },
+  { label: 'Support', values: { free: false, pro: true, team: true } },
+] satisfies CompareRow[];
 import ConversionTracking from '@justinguese/astro-kit/ConversionTracking.astro';
 import { site } from '../config/site';
 ---
@@ -35,12 +54,29 @@ import { site } from '../config/site';
 
     <div id="newsletter-done" hidden>Danke!</div>
 
-    <form action={`https://formspree.io/f/${site.formspreeId}`} method="POST">
+    <FormBlock
+      formspreeId={site.formspreeId!}
+      variant="newsletter"
+      success={{ flag: 'newsletter', anchor: 'newsletter-done' }}
+      submitLabel="Send"
+    >
       <Field name="email" label="Email" type="email" required placeholder="you@company.com"
              hint="We reply to this address." />
-      <TrackingFields variant="newsletter" />
-      <button type="submit" data-cta="newsletter">Absenden</button>
-    </form>
+      <p slot="note">By sending you agree to our <a href="/datenschutz">privacy policy</a>.</p>
+    </FormBlock>
+
+    <ScarcityBlock total={10} taken={7} layout="badge"
+                   badgeText="Only {left} of {total} slots left in {period}" period="March" />
+
+    <ScarcityBlock total={10} taken={7} layout="band" period="March"
+                   badgeText="unused"
+                   bandTitle="slots left this {period}"
+                   bandBody="Every case is handled by hand, so we take {total} new clients a month." />
+
+    <FaqBlock items={[
+      { q: 'Is this a question?', a: 'It is, and this is the answer, rendered visibly so the FAQPage markup is honest.' },
+      { q: 'A second one?', a: 'Yes.' },
+    ]} />
 
     <div class="article-body" style="margin-top:3rem">
       <h2>Kurz zusammengefasst</h2>
@@ -49,8 +85,12 @@ import { site } from '../config/site';
     </div>
   </section>
 
-  <section id="pricing" style="padding:3rem 1rem">
+  <section id="pricing" style="padding:3rem 1rem;max-width:64rem;margin-inline:auto">
     <h2>Pricing</h2>
+    <PricingCards tiers={tiers} footnote="All prices excl. VAT." />
+    <div style="margin-top:3rem">
+      <PricingMatrix tiers={tiers} rows={rows} caption="Comparison of all three plans" rowHeader="Feature" />
+    </div>
   </section>
   <section id="signup" style="padding:3rem 1rem">
     <h2>Signup</h2>
