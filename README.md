@@ -327,8 +327,8 @@ Kit components reference role tokens only. Redefine them in your `@theme`:
 | `--color-ink` / `-soft` / `-faint` | text and dark fills, descending emphasis |
 | `--color-accent` / `-bright` / `-pale` | **the** action colour — every primary CTA, nothing decorative |
 | `--color-signal` | urgency, deadline, fail-closed. Never decoration. Alias to `accent` if you have only one |
-| `--color-support` | secondary positive (verified, included) |
-| `--color-premium` | highest tier only — it stops meaning "highest" the moment it decorates |
+| `--color-support` / `-bright` | secondary positive (verified, included) |
+| `--color-premium` / `-bright` | highest tier only — it stops meaning "highest" the moment it decorates |
 | `--color-line` | hairlines, dividers |
 | `--font-display` / `--font-sans` / `--font-mono` | families only; you supply the webfonts |
 

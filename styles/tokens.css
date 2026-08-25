@@ -45,9 +45,11 @@
 
   /* Secondary positive (verified, included, safe). Optional. */
   --color-support: #57534e;
+  --color-support-bright: #78716c;
 
   /* Highest tier / premium only. Loses its meaning the moment it decorates. */
   --color-premium: #a8a29e;
+  --color-premium-bright: #d6d3d1;
 
   /* Hairlines and dividers. */
   --color-line: #d6d3d1;
