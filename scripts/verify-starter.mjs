@@ -49,11 +49,18 @@ try {
 
   const dist = join(fixture, 'dist');
   const html = readFileSync(join(dist, 'index.html'), 'utf8');
+  // Astro's `inlineStylesheets: 'auto'` puts SMALL stylesheets in a <style> tag
+  // in the HTML and only large/shared ones in _astro/*.css. A component used on
+  // one page usually lands inline. Checking only the external file reports a
+  // perfectly styled component as missing — verified on pruefanfrage.de, where
+  // .df-banner was external and .df-hero inline.
   const cssDir = join(dist, '_astro');
-  const css = readdirSync(cssDir)
+  const external = readdirSync(cssDir)
     .filter((f) => f.endsWith('.css'))
     .map((f) => readFileSync(join(cssDir, f), 'utf8'))
     .join('\n');
+  const inlined = [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map((m) => m[1]).join('\n');
+  const css = `${external}\n${inlined}`;
 
   console.log('\nconsent gating');
   check(
@@ -87,7 +94,7 @@ try {
 
   console.log('\nscoped styles survive the package boundary');
   // If these are missing, a consumer gets invisible components and no error.
-  for (const cls of ['.df-banner', '.df-sticky', '.article-body']) {
+  for (const cls of ['.df-banner', '.df-sticky', '.df-hero', '.df-field', '.article-body']) {
     check(`${cls} is emitted into the built CSS`, css.includes(cls));
   }
   check(
@@ -107,6 +114,9 @@ try {
   }
   check('honeypot present', html.includes('name="_gotcha"'));
   check('delegated CTA listener present', html.includes("closest?.('[data-cta]')"));
+  check("HeroBlock's CTA carries its analytics label", html.includes('data-cta="hero"'));
+  check('HeroBlock renders exactly one primary button', (html.match(/df-hero__btn/g) || []).length === 1,
+        'a second one means someone reintroduced a secondaryCta');
 
   console.log('\nsitemap');
   const sitemap = readFileSync(join(dist, 'sitemap-0.xml'), 'utf8');

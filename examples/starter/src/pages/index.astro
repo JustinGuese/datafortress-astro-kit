@@ -1,6 +1,8 @@
 ---
 import Site from '../layouts/Site.astro';
 import TrackingFields from '@justinguese/astro-kit/TrackingFields.astro';
+import HeroBlock from '@justinguese/astro-kit/HeroBlock.astro';
+import Field from '@justinguese/astro-kit/Field.astro';
 import ConversionTracking from '@justinguese/astro-kit/ConversionTracking.astro';
 import { site } from '../config/site';
 ---
@@ -9,16 +11,33 @@ import { site } from '../config/site';
     { flag: 'newsletter', revealId: 'newsletter-done', event: 'newsletter_lead', label: 'Newsletter' },
   ]} />
 
-  <section style="min-height:120vh;padding:3rem 1rem;max-width:48rem;margin-inline:auto">
-    <h1 class="font-display" style="font-size:2.5rem;font-weight:800">Smoke test</h1>
+  <HeroBlock
+    eyebrow="For teams that need X"
+    headline="The situation your visitor is in"
+    sub="One sentence on what you do about it, and what it costs them not to."
+    cta={{ label: 'Primary action', href: '#signup', track: 'hero' }}
+    note="No card · no contract · two minutes"
+    bullets={['Claim one', 'Claim two']}
+    stats={[
+      { value: '3', label: 'free' },
+      { value: '5d', label: 'turnaround' },
+      { value: '0', label: 'contracts' },
+    ]}
+  >
+    <div style="border:1.5px solid var(--color-line);padding:1.5rem;background:var(--color-canvas-deep)">
+      Whatever belongs beside your headline goes in this slot — never a variant prop.
+    </div>
+  </HeroBlock>
 
+  <section style="min-height:120vh;padding:3rem 1rem;max-width:48rem;margin-inline:auto">
     <a href="#pricing" data-cta="hero">Hero CTA</a>
     <a href="/kontakt" data-contact-cta="body">Contact link</a>
 
     <div id="newsletter-done" hidden>Danke!</div>
 
     <form action={`https://formspree.io/f/${site.formspreeId}`} method="POST">
-      <input type="email" name="email" required />
+      <Field name="email" label="Email" type="email" required placeholder="you@company.com"
+             hint="We reply to this address." />
       <TrackingFields variant="newsletter" />
       <button type="submit" data-cta="newsletter">Absenden</button>
     </form>
