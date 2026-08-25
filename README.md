@@ -311,6 +311,45 @@ Carries `data-cta`, so `FunnelTracking` picks it up automatically.
 | `showAfter` | `number` | `400` (px scrolled) |
 | `hideNear` | `string[]` | `[]` — element ids that suppress it |
 
+### `HeroBlock.astro` — the above-the-fold hook
+
+Unified from two diverged heroes. Takes **exactly one `cta`** — there is no
+`secondaryCta` prop, because both sites' funnel doc says "one CTA above the
+fold, nothing else clickable" and two equal buttons split attention at the
+decision point. A genuinely secondary path goes in the `cta-secondary` slot,
+which renders subordinate.
+
+| prop | type | |
+|---|---|---|
+| `cta` | `{ label, href, track }` | required; `track` becomes `data-cta` |
+| `eyebrow` | `string?` | small label above the headline |
+| `headline` / `sub` | `string?` | or use the slots for rich markup |
+| `note` | `string?` | friction remover under the button |
+| `bullets` | `string[]` | trust tags |
+| `stats` | `{value,label}[]` | proof, rendered next to the CTA |
+
+Slots: `urgency`, `headline`, `sub`, `bullets`, `cta-secondary`, and the
+default slot for the aside column. **Divergence goes in slots, never in variant
+props** — pruefanfrage puts a file-folder card in the aside, konforme-ki a
+hash-chain diagram, and the block needed no flag for either.
+
+### `Field.astro` — one labelled form control
+
+`input`, `select` or `textarea` with label, hint and optional `(optional)` note.
+Sites had 24 copies of this markup with two drifting class variants.
+
+| prop | type | |
+|---|---|---|
+| `name` / `label` | `string` | required; `id` defaults to `name` |
+| `type` | `'text'\|'email'\|'tel'\|'url'\|'date'\|'number'\|'select'\|'textarea'` | |
+| `options` | `{value,label}[]` | select only; blank prompt prepended |
+| `prompt` | `string` | blank option text — override per language |
+| `hint` / `note` | `string?` | fine print under / aside in the label |
+
+### `ArrowRight.astro`
+
+The CTA arrow, so every block and site points the same way.
+
 ### `lib/`
 
 - **`lib/seo`** — `organizationSchema`, `articleSchema`, `faqSchema`,

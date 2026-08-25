@@ -23,13 +23,37 @@ or a feature?**
 - **Feature → belongs in the site.** `Hero`, `Pricing`, `Faq`, `SocialProof`,
   page funnels, palettes, copy.
 
-**Never add a section/marketing component to this package**, however similar two
-sites' heroes look today. A shared `Hero` accumulates `variant` booleans until it
-serves nobody. Copying a section between sites is cheap and reversible; a bad
-shared abstraction is neither.
+### Blocks: the refined rule
 
-If a user asks for a shared `Hero`/`Pricing`/`Faq`, say no and explain the
-boundary — do not silently comply.
+An earlier version of this file said *never* add a section component. That was
+too absolute — it would have blocked the whole point of the kit, which is that a
+new site should be mostly text. The rule that actually holds:
+
+> Share the section's **data shape, schema.org wiring and tracking**. Let visual
+> divergence happen through **named slots** or by **opting out entirely** —
+> never through boolean variant props.
+
+The evidence: eight section roles recur across the two sites (hero, pricing,
+scarcity bar, article upsell, proof strip, comparison table, forms, guides
+index+article), but the two `Hero` implementations had *incompatible* props —
+one took `title/subtitle/bullets/stats`, the other `marginalie/primaryCta/
+secondaryCta` with its copy hardcoded inside. **What recurs is the role and the
+data, not the markup.** That is what belongs here.
+
+**Slots, never flags.** A slot is unbounded and costs nothing; a boolean
+multiplies with every site that adopts the block. `HeroBlock` takes an aside
+slot — pruefanfrage puts a file-folder card there, konforme-ki a hash-chain
+diagram — and neither needed a prop. A site that needs something genuinely
+different writes its own component and does not touch the block.
+
+**Encode conversion decisions in the API.** `HeroBlock` has exactly one `cta`
+and no `secondaryCta` prop, because both sites' funnel doc says "one CTA above
+the fold, nothing else clickable" and one of the two heroes was violating it.
+A rule expressed as a type survives; a rule expressed as a comment does not.
+
+Still true: do not add a block whose *layout* is one site's identity. The
+file-folder card, the stamped label device, the hash-chain — those stay in their
+sites.
 
 ## Hard rules
 

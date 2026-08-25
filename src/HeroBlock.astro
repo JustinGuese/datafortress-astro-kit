@@ -1,0 +1,247 @@
+---
+/**
+ * The above-the-fold hook.
+ *
+ * ## Why there is no `secondaryCta`
+ *
+ * This block was unified from two sites that had diverged. konforme-ki's hero
+ * rendered two competing buttons side by side (filled + outline); pruefanfrage's
+ * rendered one, with risk-reversal microcopy under it. The second structure is
+ * the one kept, because both sites' own funnel doc says:
+ *
+ *   "One CTA above the fold, repeated at sections 4 and 6. Nothing else
+ *    clickable."
+ *
+ * Two equally-weighted buttons at the decision point split attention and make
+ * the primary action ambiguous. So the API takes exactly ONE `cta` and there is
+ * deliberately no prop for a second — the rule is enforced by the type, not by
+ * a comment someone has to remember.
+ *
+ * A genuinely secondary path still has a home: the `cta-secondary` slot, below
+ * the note, which renders as subordinate text rather than a competing button.
+ *
+ * ## Content
+ *
+ * `headline` / `sub` / `bullets` are available as props for the common case and
+ * as slots when the copy needs markup (a `<strong>`, a link, a redaction mark).
+ * The slot wins when both are given. Divergence between sites belongs in slots,
+ * never in boolean variant props — a slot is unbounded and costs nothing; a
+ * flag multiplies with every site that adopts the block.
+ *
+ * Slots: `urgency` (above the headline), `headline`, `sub`, `bullets`,
+ * `cta-secondary`, and the default slot for the aside column.
+ */
+import ArrowRight from './ArrowRight.astro';
+
+interface Props {
+  /** Small label above the headline — category, audience, or file reference. */
+  eyebrow?: string;
+  headline?: string;
+  sub?: string;
+  /** The single primary action. */
+  cta: {
+    label: string;
+    href: string;
+    /** Analytics label; becomes `data-cta`, picked up by FunnelTracking. */
+    track: string;
+  };
+  /** Friction remover directly under the button: "no card, no contract". */
+  note?: string;
+  bullets?: string[];
+  stats?: { value: string; label: string }[];
+}
+
+const { eyebrow, headline, sub, cta, note, bullets = [], stats = [] } = Astro.props;
+const hasAside = Astro.slots.has('default');
+---
+<section class="df-hero">
+  <div class="df-hero__grid" data-aside={hasAside ? 'true' : 'false'}>
+    <div class="df-hero__main">
+      {(eyebrow || Astro.slots.has('urgency')) && (
+        <div class="df-hero__eyebrow">
+          {eyebrow && <span>{eyebrow}</span>}
+          <slot name="urgency" />
+        </div>
+      )}
+
+      <h1 class="df-hero__headline">
+        {Astro.slots.has('headline') ? <slot name="headline" /> : headline}
+      </h1>
+
+      <p class="df-hero__sub">
+        {Astro.slots.has('sub') ? <slot name="sub" /> : sub}
+      </p>
+
+      <div class="df-hero__cta">
+        <a href={cta.href} data-cta={cta.track} class="df-hero__btn">
+          {cta.label}
+          <ArrowRight />
+        </a>
+        {note && <p class="df-hero__note">{note}</p>}
+        <slot name="cta-secondary" />
+      </div>
+
+      {(bullets.length > 0 || Astro.slots.has('bullets')) && (
+        <div class="df-hero__bullets">
+          {bullets.map((b) => <span class="df-hero__bullet">{b}</span>)}
+          <slot name="bullets" />
+        </div>
+      )}
+
+      {stats.length > 0 && (
+        <dl class="df-hero__stats">
+          {stats.map((s) => (
+            <div>
+              <dt class="df-hero__stat-value">{s.value}</dt>
+              <dd class="df-hero__stat-label">{s.label}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </div>
+
+    {hasAside && (
+      <div class="df-hero__aside">
+        <slot />
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .df-hero {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-canvas);
+  }
+  .df-hero__grid {
+    max-width: 80rem;
+    margin-inline: auto;
+    padding: 3.5rem 1rem 4rem;
+    display: grid;
+    gap: 2.5rem;
+    align-items: start;
+  }
+  @media (min-width: 640px) {
+    .df-hero__grid { padding: 5rem 1.5rem 6rem; }
+  }
+  @media (min-width: 1024px) {
+    .df-hero__grid { padding-inline: 2rem; gap: 3.5rem; }
+    .df-hero__grid[data-aside='true'] { grid-template-columns: 7fr 5fr; }
+  }
+
+  .df-hero__eyebrow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-ink-faint);
+  }
+
+  .df-hero__headline {
+    margin-top: 1.5rem;
+    font-family: var(--font-display, system-ui, sans-serif);
+    font-size: clamp(2.6rem, 6vw, 4.2rem);
+    font-weight: 900;
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    color: var(--color-ink);
+    /* German compounds routinely exceed a 320px viewport. */
+    hyphens: auto;
+    overflow-wrap: break-word;
+  }
+
+  .df-hero__sub {
+    margin-top: 1.5rem;
+    max-width: 36rem;
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: var(--color-ink-soft);
+  }
+  @media (min-width: 640px) {
+    .df-hero__sub { font-size: 1.25rem; }
+  }
+
+  .df-hero__cta { margin-top: 2.25rem; }
+
+  .df-hero__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-canvas);
+    background: var(--color-accent);
+    box-shadow: 4px 4px 0 0 var(--color-ink);
+    transition: background-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  }
+  @media (min-width: 640px) {
+    .df-hero__btn { font-size: 1.125rem; }
+  }
+  .df-hero__btn:hover {
+    background: color-mix(in srgb, var(--color-accent) 88%, black);
+    box-shadow: 2px 2px 0 0 var(--color-ink);
+    transform: translate(2px, 2px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .df-hero__btn { transition: none; }
+    .df-hero__btn:hover { transform: none; }
+  }
+
+  .df-hero__note {
+    margin-top: 0.75rem;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.75rem;
+    color: var(--color-ink-faint);
+  }
+
+  .df-hero__bullets {
+    margin-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+  }
+  .df-hero__bullet {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3em 0.65em;
+    border: 1.5px solid var(--color-line);
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-ink-soft);
+  }
+
+  .df-hero__stats {
+    margin-top: 2rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    max-width: 26rem;
+  }
+  .df-hero__stat-value {
+    font-family: var(--font-display, system-ui, sans-serif);
+    font-size: 1.5rem;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--color-ink);
+    /* Figures line up column-to-column. */
+    font-variant-numeric: tabular-nums;
+  }
+  .df-hero__stat-label {
+    margin: 0.25rem 0 0;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-ink-faint);
+  }
+</style>

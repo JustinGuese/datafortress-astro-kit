@@ -1,0 +1,119 @@
+---
+/**
+ * One labelled form control — input, select or textarea.
+ *
+ * Sites repeat this markup once per field and the class strings drift: on
+ * pruefanfrage.de there were 24 copies of the label markup and two variants of
+ * the input class differing only in the placeholder colour.
+ *
+ * Scoped styles + role tokens, so it inherits each site's palette without any
+ * Tailwind configuration. `id` defaults to `name`.
+ */
+interface Option {
+  value: string;
+  label: string;
+}
+
+interface Props {
+  name: string;
+  label: string;
+  /** `select` and `textarea` pick the element; anything else is the input type. */
+  type?: 'text' | 'email' | 'tel' | 'url' | 'date' | 'number' | 'select' | 'textarea';
+  id?: string;
+  required?: boolean;
+  autocomplete?: string;
+  placeholder?: string;
+  /** `select` only. The empty prompt option is prepended for you. */
+  options?: Option[];
+  /** Blank first option of a select. Override per language. */
+  prompt?: string;
+  /** Fine print under the control. */
+  hint?: string;
+  /** De-emphasised aside inside the label, e.g. "(optional)". */
+  note?: string;
+  rows?: number;
+  value?: string;
+}
+
+const {
+  name,
+  label,
+  type = 'text',
+  id = name,
+  required = false,
+  autocomplete,
+  placeholder,
+  options = [],
+  prompt = 'Please choose…',
+  hint,
+  note,
+  rows = 4,
+  value,
+} = Astro.props;
+---
+<div class="df-field">
+  <label for={id}>
+    {label}{note && <span class="df-field__note">{note}</span>}
+  </label>
+
+  {type === 'select' ? (
+    <select {id} {name} {required}>
+      <option value="">{prompt}</option>
+      {options.map((o) => <option value={o.value} selected={value === o.value}>{o.label}</option>)}
+    </select>
+  ) : type === 'textarea' ? (
+    <textarea {id} {name} {required} {rows} {placeholder}>{value}</textarea>
+  ) : (
+    <input {id} {name} {type} {required} {autocomplete} {placeholder} {value} />
+  )}
+
+  {hint && <p class="df-field__hint">{hint}</p>}
+</div>
+
+<style>
+  .df-field label {
+    display: block;
+    margin-bottom: 0.375rem;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-ink-faint);
+  }
+  .df-field__note {
+    text-transform: none;
+    font-family: var(--font-sans, system-ui, sans-serif);
+    opacity: 0.8;
+  }
+  .df-field__note::before {
+    content: ' ';
+  }
+
+  .df-field :is(input, select, textarea) {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-family: inherit;
+    color: var(--color-ink);
+    background: var(--color-canvas);
+    border: 1.5px solid var(--color-line);
+    border-radius: 0;
+  }
+  .df-field :is(input, select, textarea)::placeholder {
+    color: var(--color-ink-faint);
+  }
+  .df-field :is(input, select, textarea):focus {
+    outline: none;
+    border-color: var(--color-ink);
+  }
+  .df-field textarea {
+    resize: vertical;
+  }
+
+  .df-field__hint {
+    margin-top: 0.25rem;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.75rem;
+    color: var(--color-ink-faint);
+  }
+</style>
