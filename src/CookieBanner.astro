@@ -1,0 +1,193 @@
+---
+/**
+ * Consent banner. Pairs with `Consent.astro`, which does the actual gating —
+ * this component only records the decision and announces it.
+ *
+ * Styling uses a scoped `<style>` block referencing role tokens, NOT Tailwind
+ * utility classes. That is deliberate: Tailwind does not scan `node_modules`
+ * unless the consuming site adds an `@source` line, and a forgotten `@source`
+ * would render this banner invisible-but-present with no error anywhere. Scoped
+ * styles ship with the component and cannot be purged.
+ */
+import {
+  CONSENT_EVENT,
+  CONSENT_STORAGE_KEY,
+} from './lib/consent';
+import {
+  defaultCookieBannerStrings,
+  type CookieBannerStrings,
+} from './lib/strings';
+
+interface Props {
+  /** Where the privacy-policy link points. */
+  privacyHref: string;
+  /** Override any subset of the English defaults. */
+  strings?: Partial<CookieBannerStrings>;
+}
+
+const { privacyHref, strings } = Astro.props;
+const t = { ...defaultCookieBannerStrings, ...strings };
+---
+<div
+  id="df-cookie-banner"
+  class="df-banner"
+  role="region"
+  aria-label={t.regionLabel}
+  hidden
+>
+  <div class="df-banner__inner">
+    <p class="df-banner__text">
+      {t.message}{' '}
+      <a href={privacyHref}>{t.privacyLinkLabel}</a>.
+    </p>
+    <div class="df-banner__actions">
+      <button type="button" id="df-decline-cookies" class="df-btn df-btn--ghost">
+        {t.declineLabel}
+      </button>
+      <button type="button" id="df-accept-cookies" class="df-btn df-btn--solid">
+        {t.acceptLabel}
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .df-banner {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 100;
+    background: var(--color-canvas);
+    border-top: 1.5px solid var(--color-line);
+    padding: 1.25rem 1rem calc(env(safe-area-inset-bottom) + 1.25rem);
+    box-shadow: 0 -4px 24px color-mix(in srgb, var(--color-ink) 12%, transparent);
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .df-banner[hidden] {
+    display: none;
+  }
+  .df-banner.is-open {
+    transform: translateY(0);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .df-banner {
+      transition: none;
+    }
+  }
+
+  .df-banner__inner {
+    max-width: 80rem;
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    align-items: center;
+  }
+  @media (min-width: 768px) {
+    .df-banner__inner {
+      flex-direction: row;
+      justify-content: space-between;
+    }
+  }
+
+  .df-banner__text {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-ink-soft);
+    max-width: 48rem;
+  }
+  .df-banner__text a {
+    color: var(--color-accent);
+    font-weight: 600;
+    text-underline-offset: 4px;
+  }
+  .df-banner__text a:hover {
+    text-decoration: underline;
+  }
+
+  .df-banner__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    flex-shrink: 0;
+  }
+  @media (min-width: 640px) {
+    .df-banner__actions {
+      flex-direction: row;
+      width: auto;
+    }
+  }
+
+  .df-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    padding: 0.625rem 1.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .df-btn--ghost {
+    border-color: var(--color-ink);
+    color: var(--color-ink);
+    background: var(--color-canvas);
+  }
+  .df-btn--ghost:hover {
+    background: var(--color-canvas-deep);
+  }
+  .df-btn--solid {
+    background: var(--color-accent);
+    color: var(--color-canvas);
+  }
+  .df-btn--solid:hover {
+    background: color-mix(in srgb, var(--color-accent) 88%, black);
+  }
+</style>
+
+<script is:inline define:vars={{ CONSENT_EVENT, CONSENT_STORAGE_KEY }}>
+  (() => {
+    function initBanner() {
+      const banner = document.getElementById('df-cookie-banner');
+      const acceptBtn = document.getElementById('df-accept-cookies');
+      const declineBtn = document.getElementById('df-decline-cookies');
+      if (!banner || !acceptBtn || !declineBtn) return;
+
+      let stored = null;
+      try {
+        stored = localStorage.getItem(CONSENT_STORAGE_KEY);
+      } catch (e) {
+        /* storage blocked; show the banner but expect the choice not to stick */
+      }
+
+      if (stored === null) {
+        banner.hidden = false;
+        // Two frames so the transition has a starting value to animate from.
+        requestAnimationFrame(() => requestAnimationFrame(() => banner.classList.add('is-open')));
+      }
+
+      const decide = (accepted) => {
+        try {
+          localStorage.setItem(CONSENT_STORAGE_KEY, String(accepted));
+        } catch (e) {
+          /* private mode: the decision holds for this page view only */
+        }
+        window.dispatchEvent(
+          new CustomEvent(CONSENT_EVENT, { detail: { accepted } }),
+        );
+        banner.classList.remove('is-open');
+        setTimeout(() => { banner.hidden = true; }, 400);
+      };
+
+      acceptBtn.addEventListener('click', () => decide(true));
+      declineBtn.addEventListener('click', () => decide(false));
+    }
+
+    initBanner();
+    document.addEventListener('astro:after-swap', initBanner);
+  })();
+</script>

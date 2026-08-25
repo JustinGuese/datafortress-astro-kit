@@ -1,0 +1,183 @@
+/* ============================================================================
+   `.article-body` — long-form content rendered from Markdown.
+
+   Covers legal boilerplate and the SEO article series. Styled by element rather
+   than by class, because the HTML comes out of Markdown and authors cannot add
+   classes to it.
+
+   Role tokens only — no colour literals. See styles/tokens.css.
+   ========================================================================= */
+
+.article-body {
+  color: var(--color-ink-soft);
+  font-size: 1.0625rem;
+  line-height: 1.75;
+}
+
+/* Flow spacing at (0,1,0) specificity. Do NOT add `.article-body p { margin: 0 }`
+   — at (0,1,1) it outranks this and collapses every paragraph together.
+   Tailwind's preflight already zeroes the browser default. */
+.article-body > * + * {
+  margin-top: 1.1em;
+}
+
+.article-body h2 {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+  margin-top: 3.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1.5px solid var(--color-line);
+}
+.article-body > h2:first-child {
+  margin-top: 0;
+}
+
+.article-body h3 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--color-accent);
+  margin-top: 2.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.article-body h4 {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin-top: 1.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.article-body strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.article-body a {
+  color: var(--color-accent);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+  transition: border-color 0.15s;
+}
+.article-body a:hover {
+  border-bottom-color: var(--color-accent);
+}
+
+.article-body ul,
+.article-body ol {
+  padding-left: 1.5rem;
+  margin: 1.1em 0;
+}
+.article-body ul {
+  list-style: none;
+  padding-left: 0;
+}
+.article-body ul > li {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-top: 0.5rem;
+}
+.article-body ul > li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 0.4rem;
+  height: 0.4rem;
+  background-color: var(--color-accent);
+}
+.article-body ol {
+  list-style: decimal;
+}
+.article-body ol > li {
+  margin-top: 0.5rem;
+  padding-left: 0.25rem;
+}
+.article-body ol > li::marker {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.article-body blockquote {
+  border-left: 3px solid var(--color-ink);
+  background: var(--color-canvas-deep);
+  padding: 1rem 1.25rem;
+  font-style: italic;
+  color: var(--color-ink);
+}
+
+.article-body code {
+  font-family: var(--font-mono);
+  background: var(--color-canvas-deep);
+  padding: 0.15rem 0.4rem;
+  font-size: 0.9em;
+  color: var(--color-accent);
+}
+
+.article-body hr {
+  border: 0;
+  border-top: 1.5px solid var(--color-line);
+  margin: 2.5rem 0;
+}
+
+/* `display: block` makes the table its own scroll container, so a wide
+   comparison table never forces the page body to scroll sideways on a phone. */
+.article-body table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  border: 1.5px solid var(--color-ink);
+  margin: 1.75em 0;
+}
+.article-body thead {
+  background: var(--color-ink);
+  color: var(--color-canvas);
+}
+.article-body th {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+.article-body td {
+  padding: 0.75rem 1rem;
+  vertical-align: top;
+  border-top: 1px solid var(--color-line);
+  min-width: 10rem;
+}
+.article-body tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--color-canvas-deep) 55%, transparent);
+}
+.article-body td strong {
+  color: var(--color-ink);
+}
+
+/* The summary list that opens every article — styled by position rather than a
+   class, so authors do not have to remember one. */
+.article-body > h2:first-of-type + ul {
+  background: var(--color-canvas-deep);
+  border-left: 3px solid var(--color-accent);
+  padding: 1.25rem 1.5rem 1.25rem 1.25rem;
+  margin-top: 0;
+}
+.article-body > h2:first-of-type + ul > li:first-child {
+  margin-top: 0;
+}
+.article-body > h2:first-of-type + ul > li {
+  padding-left: 1.25rem;
+}
+.article-body > h2:first-of-type + ul > li::before {
+  top: 0.65em;
+}

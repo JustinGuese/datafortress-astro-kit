@@ -1,0 +1,33 @@
+{
+  "name": "@datafortress/astro-kit",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Landing-page plumbing shared across DataFortress Astro sites: consent-gated analytics, attribution, SEO head, funnel tracking. Deliberately contains no section components.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JustinGuese/datafortress-astro-kit.git"
+  },
+  "license": "UNLICENSED",
+  "private": false,
+  "files": [
+    "src",
+    "styles",
+    "README.md",
+    "AGENTS.md"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    "./styles/*.css": "./styles/*.css",
+    "./lib/*": "./src/lib/*.ts",
+    "./*.astro": "./src/*.astro"
+  },
+  "peerDependencies": {
+    "astro": "^7.0.0"
+  },
+  "keywords": [
+    "astro",
+    "consent-mode",
+    "gdpr",
+    "landing-page"
+  ]
+}

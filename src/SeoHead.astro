@@ -1,0 +1,78 @@
+---
+/**
+ * Everything that belongs in `<head>` for search engines and social previews.
+ * Render inside `<head>`, before `Consent.astro`.
+ *
+ * The canonical URL is built from `Astro.site` + pathname ONLY — query and hash
+ * are dropped. Without that, every ad click (`?utm_source=…`, `?fbclid=…`) and
+ * every form-success redirect (`?newsletter=1`) declares itself a separate URL
+ * and the same page competes with dozens of near-duplicates of itself.
+ */
+interface Props {
+  title: string;
+  description: string;
+  siteName: string;
+  /** BCP-47 locale for og:locale, e.g. 'de_DE'. */
+  locale?: string;
+  ogType?: 'website' | 'article';
+  /** Path to the social preview image, resolved against the site origin. */
+  image?: string;
+  /** Set on staging, thank-you pages, and anything that must not be indexed. */
+  noindex?: boolean;
+  /** og:article metadata. Only read when `ogType` is 'article'. */
+  article?: { publishedTime?: string; modifiedTime?: string; section?: string };
+  /** JSON-LD objects, e.g. from `lib/seo`. Each is serialised into its own tag. */
+  schemas?: Record<string, unknown>[];
+}
+
+const {
+  title,
+  description,
+  siteName,
+  locale = 'en_US',
+  ogType = 'website',
+  image = '/og-image.svg',
+  noindex = false,
+  article,
+  schemas = [],
+} = Astro.props;
+
+const origin = Astro.site ?? Astro.url;
+const canonical = new URL(Astro.url.pathname, origin).href;
+const imageUrl = new URL(image, origin).href;
+---
+<title>{title}</title>
+<meta name="title" content={title} />
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+
+{noindex
+  ? <meta name="robots" content="noindex,nofollow" />
+  : <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />}
+
+<meta property="og:type" content={ogType} />
+<meta property="og:locale" content={locale} />
+<meta property="og:site_name" content={siteName} />
+<meta property="og:url" content={canonical} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={imageUrl} />
+{ogType === 'article' && article?.publishedTime && (
+  <meta property="article:published_time" content={article.publishedTime} />
+)}
+{ogType === 'article' && article?.modifiedTime && (
+  <meta property="article:modified_time" content={article.modifiedTime} />
+)}
+{ogType === 'article' && article?.section && (
+  <meta property="article:section" content={article.section} />
+)}
+
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:url" content={canonical} />
+<meta property="twitter:title" content={title} />
+<meta property="twitter:description" content={description} />
+<meta property="twitter:image" content={imageUrl} />
+
+{schemas.map((schema) => (
+  <script type="application/ld+json" set:html={JSON.stringify(schema)} is:inline />
+))}

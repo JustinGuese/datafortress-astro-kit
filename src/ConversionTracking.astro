@@ -1,0 +1,77 @@
+---
+/**
+ * Post-submission conversion handling for redirect-based form services
+ * (Formspree's `_next`, and anything else that returns to your own page with a
+ * success flag in the query string).
+ *
+ * For each configured success state it: reveals the confirmation panel, fires
+ * one GA4 `generate_lead` plus a Meta `Lead`, and strips the flag from the URL
+ * so a reload or a shared link does not re-count the conversion.
+ *
+ * This replaces per-page copies of the same block. On pruefanfrage.de that
+ * logic existed three times with three different event names, which made the
+ * lead total depend on which page the visitor happened to convert from.
+ */
+
+export interface SuccessState {
+  /** Query flag Formspree redirects back with, e.g. `newsletter` for `?newsletter=1`. */
+  flag: string;
+  /** id of the element to reveal (its `hidden` attribute is removed). Optional. */
+  revealId?: string;
+  /** GA4 event name fired alongside the standard `generate_lead`. */
+  event: string;
+  /** Human label, sent to Meta as `content_name`. */
+  label: string;
+}
+
+interface Props {
+  states: SuccessState[];
+}
+
+const { states } = Astro.props;
+---
+<script is:inline define:vars={{ states }}>
+  (() => {
+    const params = new URLSearchParams(window.location.search);
+    let changed = false;
+
+    states.forEach(({ flag, revealId, event, label }) => {
+      if (params.get(flag) !== '1') return;
+
+      if (revealId) {
+        const panel = document.getElementById(revealId);
+        if (panel) {
+          panel.hidden = false;
+          panel.classList.remove('hidden');
+        }
+      }
+
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', event, { content_category: 'Funnel' });
+        // Standard GA4 conversion event fired alongside the specific one, so
+        // every form rolls up into a single lead metric.
+        window.gtag('event', 'generate_lead', { form_name: event, content_category: 'Funnel' });
+      }
+      if (typeof window.fbq === 'function') {
+        window.fbq('track', 'Lead', { content_name: label });
+      }
+
+      params.delete(flag);
+      changed = true;
+    });
+
+    if (!changed) return;
+
+    const qs = params.toString();
+    window.history.replaceState(
+      {},
+      '',
+      window.location.pathname + (qs ? '?' + qs : '') + window.location.hash,
+    );
+
+    // The panel started hidden, so the browser's own hash jump landed short.
+    if (window.location.hash) {
+      document.querySelector(window.location.hash)?.scrollIntoView({ block: 'start' });
+    }
+  })();
+</script>

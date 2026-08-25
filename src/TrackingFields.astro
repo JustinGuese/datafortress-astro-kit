@@ -1,0 +1,31 @@
+---
+/**
+ * Hidden attribution inputs for a form (Formspree or otherwise), plus a
+ * honeypot.
+ *
+ * Values are left empty at build time and filled client-side by
+ * `Attribution.astro` — which must be rendered somewhere on the same page, or
+ * every submission arrives with blank attribution.
+ *
+ * `variant` records WHICH form/offer the submission came from, so submissions
+ * are separable without parsing the URL. It is a free-form string here on
+ * purpose: the set of offers is site-specific vocabulary and must not be baked
+ * into the shared kit. Declare a union in your own site config and pass it in.
+ */
+import { ATTRIBUTION_FIELDS, TRACK_FIELD_ATTR } from './lib/attribution';
+
+interface Props {
+  /** Which form/offer this is, e.g. 'newsletter' | 'demo-request'. */
+  variant: string;
+}
+
+const { variant } = Astro.props;
+const landingPage = Astro.url.pathname;
+---
+<input type="hidden" name="variant" value={variant} />
+<input type="hidden" name="landing_page" value={landingPage} />
+{ATTRIBUTION_FIELDS.map((field) => (
+  <input type="hidden" name={field} value="" {...{ [TRACK_FIELD_ATTR]: field }} />
+))}
+<!-- Honeypot: bots fill it, humans never see it. -->
+<input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="display:none" />

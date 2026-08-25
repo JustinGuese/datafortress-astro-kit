@@ -1,0 +1,54 @@
+/* ============================================================================
+   Role tokens — the contract between the kit and a consuming site.
+
+   Kit components reference ONLY these names. A site re-skins itself by
+   redefining them in its own `@theme` block after importing this file; no kit
+   component ever needs editing to change a brand.
+
+   Names describe ROLE, never appearance. `--color-accent` (not `--color-red`,
+   not `--color-stamp`): the same markup then reads correctly whether the site's
+   action colour is oxblood or verdigris. Brand-named tokens are what made the
+   first two sites impossible to re-skin without a 600-occurrence find/replace.
+
+   THE DEFAULTS BELOW ARE PLACEHOLDERS. They are deliberately a flat neutral
+   grey so that an unthemed site looks obviously unfinished rather than
+   plausibly deliberate. Shipping these means you forgot to write theme.css.
+
+   This is the ONLY file in the package where a colour literal may appear.
+   ========================================================================= */
+
+@theme {
+  /* Typography — families only; the site supplies the actual webfonts. */
+  --font-display: ui-sans-serif, system-ui, sans-serif;
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, monospace;
+
+  /* Ground. canvas = page, canvas-deep = alternating band, surface = raised card. */
+  --color-canvas: #f5f5f4;
+  --color-canvas-deep: #e7e5e4;
+  --color-surface: #ffffff;
+
+  /* Text and dark fills, in descending emphasis. */
+  --color-ink: #1c1917;
+  --color-ink-soft: #57534e;
+  --color-ink-faint: #a8a29e;
+
+  /* THE action colour. Exactly one per site — every primary CTA uses it and
+     nothing decorative may. */
+  --color-accent: #44403c;
+  --color-accent-bright: #78716c;
+  --color-accent-pale: #e7e5e4;
+
+  /* Urgency / fail-closed / deadline. Never decoration. Sites without a
+     separate signal colour should alias this to accent. */
+  --color-signal: #44403c;
+
+  /* Secondary positive (verified, included, safe). Optional. */
+  --color-support: #57534e;
+
+  /* Highest tier / premium only. Loses its meaning the moment it decorates. */
+  --color-premium: #a8a29e;
+
+  /* Hairlines and dividers. */
+  --color-line: #d6d3d1;
+}

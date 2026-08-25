@@ -1,0 +1,77 @@
+---
+/**
+ * First-touch attribution.
+ *
+ * Persists the UTMs (and ad click id) of the visit that FIRST brought this
+ * browser to the site, then stamps them into every `[data-track-field]` element
+ * on the page — i.e. into the hidden inputs rendered by `TrackingFields.astro`.
+ *
+ * First touch wins on purpose: a later organic or direct visit must not
+ * overwrite the paid click that actually acquired the lead. Without this, a
+ * visitor who lands on `/` from an ad and converts on `/contact` looks like
+ * direct traffic, and cost-per-lead per campaign cannot be computed at all.
+ *
+ * Render once per page, near the end of `<body>`. It is intentionally NOT
+ * consent-gated: it writes only first-party storage on the site's own domain
+ * and loads nothing from a third party. If your privacy policy says otherwise,
+ * gate it behind `CONSENT_EVENT` instead.
+ */
+import {
+  ATTRIBUTION_FIELDS,
+  CLICK_ID_PARAMS,
+  DEFAULT_ATTRIBUTION_KEY,
+  TRACK_FIELD_ATTR,
+  UTM_PARAMS,
+} from './lib/attribution';
+
+interface Props {
+  /** localStorage key. Override when two sites share an origin. */
+  storageKey?: string;
+}
+
+const { storageKey = DEFAULT_ATTRIBUTION_KEY } = Astro.props;
+---
+<script
+  is:inline
+  define:vars={{ storageKey, UTM_PARAMS, CLICK_ID_PARAMS, ATTRIBUTION_FIELDS, TRACK_FIELD_ATTR }}
+>
+  (() => {
+    const params = new URLSearchParams(window.location.search);
+
+    let stored = null;
+    try {
+      stored = JSON.parse(localStorage.getItem(storageKey) || 'null');
+    } catch (e) {
+      stored = null;
+    }
+
+    const clickId = CLICK_ID_PARAMS.map((k) => params.get(k)).find(Boolean) || '';
+    const isPaidTouch = UTM_PARAMS.some((k) => params.get(k)) || Boolean(clickId);
+
+    // Record when there is a campaign to record, or when nothing is stored yet.
+    // A later organic visit never overwrites a stored paid click.
+    if (isPaidTouch || !stored) {
+      stored = {
+        ad_click_id: clickId,
+        referrer: document.referrer || '',
+        first_seen: new Date().toISOString(),
+      };
+      UTM_PARAMS.forEach((k) => { stored[k] = params.get(k) || ''; });
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(stored));
+      } catch (e) {
+        /* private mode — attribution holds for this page view only */
+      }
+    }
+
+    const stamp = () => {
+      document.querySelectorAll('[' + TRACK_FIELD_ATTR + ']').forEach((el) => {
+        const field = el.getAttribute(TRACK_FIELD_ATTR);
+        if (ATTRIBUTION_FIELDS.includes(field) && stored[field]) el.value = stored[field];
+      });
+    };
+
+    stamp();
+    document.addEventListener('astro:after-swap', stamp);
+  })();
+</script>

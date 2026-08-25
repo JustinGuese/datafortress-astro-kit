@@ -1,0 +1,60 @@
+---
+/**
+ * ONE delegated click listener for every funnel CTA on the site.
+ *
+ * Render once, in the layout. Then mark any CTA anywhere:
+ *
+ *   <a href="#pricing" data-cta="hero">…</a>
+ *   <a href="/contact" data-contact-cta="footer">…</a>
+ *
+ * Delegation from `document` — rather than `querySelectorAll` at load — matters
+ * for two reasons: CTAs revealed later (success panels, menus) are covered, and
+ * there is exactly one listener rather than one per page. The per-page variant
+ * is what failed on pruefanfrage.de: the listener lived on three pages out of
+ * eleven, so the sticky bar and several components tracked nothing, and two of
+ * the three copies had drifted to different event names.
+ *
+ * Fires only once a tracker is actually loaded (Consent Mode v2) — before
+ * consent, `gtag` is a no-op shim and `fbq` does not exist.
+ */
+
+interface Props {
+  /** GA4 event name for a funnel CTA click. */
+  ctaEventName?: string;
+  /** GA4 event name for a contact-intent click. */
+  contactEventName?: string;
+}
+
+const { ctaEventName = 'cta_click', contactEventName = 'contact' } = Astro.props;
+---
+<script is:inline define:vars={{ ctaEventName, contactEventName }}>
+  document.addEventListener('click', (event) => {
+    const cta = event.target.closest?.('[data-cta]');
+    if (cta) {
+      const label = cta.getAttribute('data-cta');
+      // One event name with the label as a parameter, never one event name per
+      // label: `${label}_cta_click` makes "how many CTA clicks in total"
+      // unanswerable without summing an open-ended set of names, and GA4 caps
+      // distinct event names per property.
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', ctaEventName, { content_category: 'Funnel', cta: label });
+      }
+      if (typeof window.fbq === 'function') {
+        window.fbq('trackCustom', 'CtaClick', { cta: label });
+      }
+    }
+
+    // A click through to the contact page is contact intent in its own right,
+    // separate from the `generate_lead` that fires if a form is actually sent.
+    const contact = event.target.closest?.('[data-contact-cta]');
+    if (contact) {
+      const source = contact.getAttribute('data-contact-cta');
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', contactEventName, { method: source });
+      }
+      if (typeof window.fbq === 'function') {
+        window.fbq('track', 'Contact', { content_name: source });
+      }
+    }
+  });
+</script>

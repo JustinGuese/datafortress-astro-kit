@@ -1,0 +1,95 @@
+---
+/**
+ * Google Consent Mode v2 + consent-gated GA4 / Meta Pixel loader.
+ *
+ * MUST be rendered inside `<head>`, and before anything else that calls
+ * `gtag`. It installs `window.gtag` and sets all four consent signals to
+ * `denied` before any tracker exists; GA4 and the Pixel are injected only
+ * after the visitor accepts.
+ *
+ * There is deliberately NO `<noscript>` Meta pixel: it would fire on load with
+ * no way to consult consent.
+ *
+ * Pass no IDs and the component still installs the consent defaults and the
+ * `gtag` shim — useful for a staging build that should never report.
+ */
+import { CONSENT_EVENT, CONSENT_STORAGE_KEY } from './lib/consent';
+
+interface Props {
+  /** GA4 measurement ID, e.g. `G-XXXXXXX`. Omit to load no analytics. */
+  ga4Id?: string;
+  /** Meta Pixel ID. Omit to load no pixel. */
+  metaPixelId?: string;
+  /** Passed to `gtag('config')`. Defaults to true; turn off only with a reason. */
+  anonymizeIp?: boolean;
+}
+
+const { ga4Id, metaPixelId, anonymizeIp = true } = Astro.props;
+---
+<script
+  is:inline
+  define:vars={{ ga4Id, metaPixelId, anonymizeIp, CONSENT_EVENT, CONSENT_STORAGE_KEY }}
+>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { window.dataLayer.push(arguments); }
+  window.gtag = gtag;
+
+  // Must precede every other gtag call, and starts fully denied.
+  gtag('consent', 'default', {
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+    analytics_storage: 'denied',
+  });
+
+  function loadGA4() {
+    if (!ga4Id || window.__dfKitGa4Loaded) return;
+    window.__dfKitGa4Loaded = true;
+    const s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + ga4Id;
+    document.head.appendChild(s);
+    gtag('js', new Date());
+    gtag('config', ga4Id, anonymizeIp ? { anonymize_ip: true } : {});
+  }
+
+  function loadMetaPixel() {
+    if (!metaPixelId || window.__dfKitPixelLoaded) return;
+    window.__dfKitPixelLoaded = true;
+    !function (f, b, e, v, n, t, s) {
+      if (f.fbq) return; n = f.fbq = function () {
+        n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+      };
+      if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
+      n.queue = []; t = b.createElement(e); t.async = !0; t.src = v;
+      s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
+    }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+    window.fbq('init', metaPixelId);
+    window.fbq('track', 'PageView');
+  }
+
+  function applyConsent(accepted) {
+    gtag('consent', 'update', {
+      ad_storage: accepted ? 'granted' : 'denied',
+      ad_user_data: accepted ? 'granted' : 'denied',
+      ad_personalization: accepted ? 'granted' : 'denied',
+      analytics_storage: accepted ? 'granted' : 'denied',
+    });
+    if (accepted) {
+      loadGA4();
+      loadMetaPixel();
+    }
+  }
+
+  window.addEventListener(CONSENT_EVENT, (e) => applyConsent(e.detail.accepted));
+
+  // Returning visitor who already accepted: the banner will not be shown again
+  // and so would never fire the event. Apply the stored decision immediately.
+  let storedConsent = null;
+  try {
+    storedConsent = localStorage.getItem(CONSENT_STORAGE_KEY);
+  } catch (e) {
+    /* private mode / storage blocked — treat as undecided */
+  }
+  if (storedConsent === 'true') applyConsent(true);
+</script>
