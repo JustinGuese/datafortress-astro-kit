@@ -91,7 +91,9 @@ One file holding every value that identifies this site. Nothing below should
 ever be typed into a component again.
 
 ```ts
-export const site = {
+import { defineSiteConfig } from '@datafortress/astro-kit/lib/site';
+
+export const site = defineSiteConfig({
   name: 'example.de',
   legalName: 'DataFortress.cloud GmbH',
   url: 'https://example.de',
@@ -107,8 +109,11 @@ export const site = {
   metaPixelId: '000000000000000',
   formspreeId: 'xxxxxxxx',
   privacyHref: '/datenschutz',
-} as const;
+});
 ```
+
+Everything in this object compiles into public HTML — never put a secret in it.
+Analytics IDs and Formspree *form* ids are public by design.
 
 ### `src/layouts/Site.astro`
 
