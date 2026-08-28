@@ -11,7 +11,13 @@
  * This replaces per-page copies of the same block. On pruefanfrage.de that
  * logic existed three times with three different event names, which made the
  * lead total depend on which page the visitor happened to convert from.
+ *
+ * The Meta event carries the `eventID` that `TrackingFields` submitted, so a
+ * site also reporting server-side does not count the same conversion twice.
+ * See `lib/conversion` — and note that dedup needs the event NAME to match on
+ * both sides too, so `metaEvent` here must agree with what your backend sends.
  */
+import { EVENT_ID_KEY } from './lib/conversion';
 
 export interface SuccessState {
   /** Query flag Formspree redirects back with, e.g. `newsletter` for `?newsletter=1`. */
@@ -44,11 +50,29 @@ interface Props {
 }
 
 const { states } = Astro.props;
+
+// Passed in rather than imported: this script is `is:inline`, so it is emitted
+// as-is and cannot resolve a bare module specifier at runtime.
+const eventIdKey = EVENT_ID_KEY;
 ---
-<script is:inline define:vars={{ states }}>
+<script is:inline define:vars={{ states, eventIdKey }}>
   (() => {
     const params = new URLSearchParams(window.location.search);
     let changed = false;
+
+    // Minted by TrackingFields at submit time and carried across the redirect.
+    // Read once and cleared immediately: if the visitor reloads this URL before
+    // the flag is stripped, the conversion must not be reported a second time
+    // under an id the server has already seen.
+    let eventId = null;
+    try {
+      eventId = sessionStorage.getItem(eventIdKey);
+      if (eventId) sessionStorage.removeItem(eventIdKey);
+    } catch {
+      // Storage unavailable; fall through with no id. Meta then treats the
+      // browser and server events as distinct, which is the pre-dedup
+      // behaviour rather than a failure.
+    }
 
     states.forEach(({ flag, revealId, event, label, metaEvent, metaCustom }) => {
       if (params.get(flag) !== '1') return;
@@ -69,7 +93,14 @@ const { states } = Astro.props;
       }
       if (typeof window.fbq === 'function') {
         const name = metaEvent || 'Lead';
-        window.fbq(metaCustom ? 'trackCustom' : 'track', name, { content_name: label });
+        // The 4th argument is fbq's options object; `eventID` there is what
+        // Meta matches against the server event. Omitted when there is no id,
+        // rather than sent empty, which Meta would treat as a distinct event.
+        if (eventId) {
+          window.fbq(metaCustom ? 'trackCustom' : 'track', name, { content_name: label }, { eventID: eventId });
+        } else {
+          window.fbq(metaCustom ? 'trackCustom' : 'track', name, { content_name: label });
+        }
       }
 
       params.delete(flag);

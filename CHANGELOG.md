@@ -6,6 +6,41 @@ while `0.x`, a **minor** bump may contain breaking changes.
 Removing or renaming an export is breaking for every consuming site — grep the
 sibling repos' `src/` first and update the call sites in the same release.
 
+## [0.6.0] — 2026-08-28
+
+### Added
+
+- **Browser/server conversion deduplication (`event_id`).** `TrackingFields`
+  now submits a per-submission `event_id`, and `ConversionTracking` passes that
+  same id to `fbq` as `eventID`. Meta collapses a browser event and a server
+  event into one conversion when the event **name** and **id** both match;
+  without an id it counts them separately.
+
+  This was found live. konforme-ki.de turned on server-side Conversions API
+  reporting while the pixel kept firing from the browser, so `Lead`,
+  `FreeDownload` and the rest were each being counted twice — and nothing looked
+  wrong, the totals were simply inflated. Any site reporting from both sides had
+  the same problem the moment it enabled the server half.
+
+  The id lives in `TrackingFields`, not `FormBlock`, because it has to reach
+  every form — including hand-rolled `<form>` markup that includes only the
+  attribution plumbing. It is minted at **submit time** by one delegated
+  capture-phase listener and handed across the `_next` redirect in
+  `sessionStorage`. It is deliberately empty in the built HTML: these are static
+  pages, so a build-time id would be the same string for every visitor and Meta
+  would merge every conversion the site ever reports into one. The starter
+  asserts both that the field exists and that it ships empty.
+
+  **Backward compatible**, with one thing to check: dedup also requires the
+  event *name* to match. A page firing the default `Lead` while its backend
+  reports `Contact` for the same submission does not double-count — it records
+  two different conversions, which reads as plausible and is harder to spot. Line
+  `metaEvent` up with what your backend sends.
+
+- **`lib/conversion`** — `EVENT_ID_FIELD`, `EVENT_ID_ATTR`, `EVENT_ID_KEY`,
+  `newEventId()`. The shared contract between the two components, in the same
+  spirit as `lib/attribution`.
+
 ## [0.5.0] — 2026-08-28
 
 ### Added

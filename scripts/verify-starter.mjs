@@ -120,6 +120,14 @@ try {
     check(`hidden input for ${field}`, html.includes(`data-track-field="${field}"`));
   }
   check('honeypot present', html.includes('name="_gotcha"'));
+  check('dedup event id field present', html.includes('data-df-event-id'));
+  check(
+    'the event id is EMPTY in the built HTML',
+    !/data-df-event-id[^>]*value="[^"]/.test(html) &&
+      !/name="event_id"\s+value="[^"]/.test(html),
+    'these pages are static: a build-time id would be identical for every visitor, ' +
+      'and Meta would collapse every conversion the site ever reports into one',
+  );
   check('delegated CTA listener present', html.includes("closest?.('[data-cta]')"));
   check("HeroBlock's CTA carries its analytics label", html.includes('data-cta="hero"'));
   check('HeroBlock renders exactly one primary button', (html.match(/df-hero__btn/g) || []).length === 1,

@@ -354,6 +354,27 @@ delivery on:
 — required for any event name outside Meta's standard set (Lead,
 CompleteRegistration, Purchase, ...), or Meta silently drops it.
 
+#### Reporting from the server too
+
+If your backend also reports conversions (Meta's Conversions API), the browser
+and the server are describing the same submission and Meta has to be told so —
+otherwise every conversion is counted twice. It deduplicates on the **event name
+and event id together**.
+
+The id is handled for you: `TrackingFields` mints one per submission and posts
+it as `event_id`, and `ConversionTracking` fires the pixel with the same value as
+`eventID`. Forward that field to Meta from your backend and the two halves
+collapse into one conversion.
+
+**The names are yours to line up.** A page firing the default `Lead` while its
+backend reports `Contact` for the same submission is not double-counting — it is
+recording two *different* conversions, which looks plausible in Events Manager
+and is much harder to notice. Whatever `metaEvent` says here must be what your
+backend sends for that form.
+
+Nothing breaks without a backend: with only the pixel reporting, the id is
+simply along for the ride.
+
 ### `StickyCta.astro` — end of `<body>`
 
 Mobile sticky footer CTA that hides whenever a real in-page CTA is on screen.
@@ -637,8 +658,10 @@ The CTA arrow, so every block and site points the same way.
   throws at build time naming the form if neither is set. `formspreeAction(id)`
   builds a Formspree URL directly, for a form not using `FormBlock`. Everything
   in that config object compiles into public HTML — never put a secret in it.
-- **`lib/consent`**, **`lib/attribution`** — the shared attribute/event/key
-  names. Import these; never retype the string literals.
+- **`lib/consent`**, **`lib/attribution`**, **`lib/conversion`** — the shared
+  attribute/event/key names. Import these; never retype the string literals.
+  `lib/conversion` also exports `newEventId()`, the per-submission id that lets
+  Meta collapse a browser event and a server event into one conversion.
 
 ## 4. Theming
 

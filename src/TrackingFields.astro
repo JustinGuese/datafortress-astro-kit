@@ -13,6 +13,7 @@
  * into the shared kit. Declare a union in your own site config and pass it in.
  */
 import { ATTRIBUTION_FIELDS, TRACK_FIELD_ATTR } from './lib/attribution';
+import { EVENT_ID_ATTR, EVENT_ID_FIELD } from './lib/conversion';
 
 interface Props {
   /** Which form/offer this is, e.g. 'newsletter' | 'demo-request'. */
@@ -27,5 +28,44 @@ const landingPage = Astro.url.pathname;
 {ATTRIBUTION_FIELDS.map((field) => (
   <input type="hidden" name={field} value="" {...{ [TRACK_FIELD_ATTR]: field }} />
 ))}
+{/*
+  Deduplication id, filled at submit time -- see lib/conversion. It lives here
+  rather than in `FormBlock` because it has to reach EVERY form, and forms whose
+  markup the kit does not own (a hand-rolled <form> that still wants the
+  attribution plumbing) include this component directly. Empty in the HTML on
+  purpose: these pages are statically generated, so a build-time id would be the
+  same string for every visitor and Meta would collapse every conversion the
+  site ever reports into one.
+*/}
+<input type="hidden" name={EVENT_ID_FIELD} value="" {...{ [EVENT_ID_ATTR]: '' }} />
 <!-- Honeypot: bots fill it, humans never see it. -->
 <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="display:none" />
+
+<script>
+  import { EVENT_ID_ATTR, EVENT_ID_KEY, newEventId } from './lib/conversion';
+
+  // One delegated listener for the page, not one per form: Astro hoists and
+  // dedupes this module, so N instances of TrackingFields still register it
+  // once. Capture phase, so the id is minted even if the page's own submit
+  // handler stops propagation.
+  document.addEventListener(
+    'submit',
+    (event) => {
+      const form = event.target;
+      if (!(form instanceof HTMLFormElement)) return;
+      const field = form.querySelector(`input[${EVENT_ID_ATTR}]`);
+      if (!(field instanceof HTMLInputElement)) return;
+
+      const id = newEventId();
+      field.value = id;
+      try {
+        sessionStorage.setItem(EVENT_ID_KEY, id);
+      } catch {
+        // Private mode, or storage disabled. The id still reaches the server on
+        // the form post; only the browser-side half loses its dedup key, which
+        // degrades to the previous behaviour rather than breaking the send.
+      }
+    },
+    true,
+  );
+</script>
