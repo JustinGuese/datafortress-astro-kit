@@ -22,6 +22,21 @@ export interface SuccessState {
   event: string;
   /** Human label, sent to Meta as `content_name`. */
   label: string;
+  /**
+   * Meta pixel event name. Defaults to the standard `Lead` event. Set this on
+   * any state that is not real purchase intent (a free download, a
+   * newsletter signup) so it does not pollute the signal an ad account
+   * optimises Lead delivery on -- a free checklist and a paid-intent form are
+   * different conversions, and reporting both as `Lead` teaches the
+   * optimiser to chase whichever is more common.
+   */
+  metaEvent?: string;
+  /**
+   * Set when `metaEvent` is not one of Meta's standard event names (Lead,
+   * CompleteRegistration, Purchase, ...) -- those need `fbq('trackCustom', ...)`
+   * instead of `fbq('track', ...)`, or Meta silently drops them.
+   */
+  metaCustom?: boolean;
 }
 
 interface Props {
@@ -35,7 +50,7 @@ const { states } = Astro.props;
     const params = new URLSearchParams(window.location.search);
     let changed = false;
 
-    states.forEach(({ flag, revealId, event, label }) => {
+    states.forEach(({ flag, revealId, event, label, metaEvent, metaCustom }) => {
       if (params.get(flag) !== '1') return;
 
       if (revealId) {
@@ -53,7 +68,8 @@ const { states } = Astro.props;
         window.gtag('event', 'generate_lead', { form_name: event, content_category: 'Funnel' });
       }
       if (typeof window.fbq === 'function') {
-        window.fbq('track', 'Lead', { content_name: label });
+        const name = metaEvent || 'Lead';
+        window.fbq(metaCustom ? 'trackCustom' : 'track', name, { content_name: label });
       }
 
       params.delete(flag);

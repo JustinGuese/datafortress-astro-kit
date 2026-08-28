@@ -144,13 +144,18 @@ export const site = defineSiteConfig({
   },
   ga4Id: 'G-XXXXXXXXXX',
   metaPixelId: '000000000000000',
-  formspreeId: 'xxxxxxxx',
+  // Where forms post. Pick one:
+  formspreeId: 'xxxxxxxx',                                    // Formspree, or
+  formsBase: 'https://your-api.example/v1/forms/mysite',       // your own endpoint
   privacyHref: '/datenschutz',
 });
 ```
 
 Everything in this object compiles into public HTML — never put a secret in it.
 Analytics IDs and Formspree *form* ids are public by design.
+
+`formsBase` wins when both are set, so a site can migrate its forms off
+Formspree by adding one line — see [Leaving Formspree](#leaving-formspree).
 
 ### `src/layouts/Site.astro`
 
@@ -321,14 +326,33 @@ names, and GA4 caps distinct event names per property.
 ### `ConversionTracking.astro` — on pages that receive form redirects
 
 Handles Formspree `_next` returns: reveals the confirmation panel, fires
-`generate_lead` + Meta `Lead`, and strips the flag from the URL so a reload does
-not re-count.
+`generate_lead` + a Meta pixel event, and strips the flag from the URL so a
+reload does not re-count.
 
 ```astro
 <ConversionTracking states={[
   { flag: 'newsletter', revealId: 'newsletter-done', event: 'newsletter_lead', label: 'Newsletter' },
 ]} />
 ```
+
+Each state fires Meta's standard `Lead` event by default. Set `metaEvent` on any
+state that is **not** real purchase intent — a free download, a newsletter
+signup — so it does not land in the same bucket an ad account optimises `Lead`
+delivery on:
+
+```astro
+<ConversionTracking states={[
+  { flag: 'zugang', revealId: 'zugang-done', event: 'zugang', label: 'Access request' },
+  {
+    flag: 'checklist', revealId: 'checklist-done', event: 'checklist', label: 'Free checklist',
+    metaEvent: 'FreeDownload', metaCustom: true, // not a Meta standard event -> trackCustom
+  },
+]} />
+```
+
+`metaCustom: true` switches from `fbq('track', ...)` to `fbq('trackCustom', ...)`
+— required for any event name outside Meta's standard set (Lead,
+CompleteRegistration, Purchase, ...), or Meta silently drops it.
 
 ### `StickyCta.astro` — end of `<body>`
 
@@ -378,7 +402,7 @@ Sites had 24 copies of this markup with two drifting class variants.
 | `prompt` | `string` | blank option text — override per language |
 | `hint` / `note` | `string?` | fine print under / aside in the label |
 
-### `FormBlock.astro` — a Formspree form with its plumbing wired
+### `FormBlock.astro` — a form with its plumbing wired
 
 Put the fields in the default slot; the action, the hidden `form` name, the
 `_next` redirect, `TrackingFields` and the submit button are handled for you.
@@ -387,12 +411,17 @@ That boilerplate appeared five times on pruefanfrage.de and had already drifted
 
 | prop | type | |
 |---|---|---|
-| `formspreeId` | `string` | required; the part after `/f/` |
+| `formspreeId` | `string?` | the part after `/f/`; omit when `formsBase` is set |
+| `formsBase` | `string?` | your own endpoint's base URL; takes precedence |
 | `variant` | `string` | submission `variant` + `data-cta` on the button |
 | `name` | `string?` | hidden `form` field; defaults to `variant` |
 | `success` | `{ flag, anchor? }?` | builds `?flag=1#anchor` for the return trip |
 | `submitLabel` | `string` | required |
 | `class` | `string?` | your card styling on the `<form>` |
+
+One of `formspreeId` / `formsBase` is required — `formAction()` throws at build
+time with the form's name if neither is set, rather than rendering a form that
+posts to the current page.
 
 Slots: default (fields), `submit-icon`, `note`.
 
@@ -402,6 +431,35 @@ set one without the other and the form works while the conversion goes uncounted
 `submitClass` layers classes onto the submit button — an escape hatch for a
 form whose button should read as a different action, rather than the kit
 growing an `accent` enum.
+
+#### Leaving Formspree
+
+Set `formsBase` in the site config and pass it through; every field name stays
+identical, which is the point:
+
+```ts
+// src/config/site.ts
+export const site = defineSiteConfig({
+  formspreeId: 'abcd1234',   // keep as a fallback for forms not yet migrated
+  formsBase: 'https://marketing-api.datafortress.cloud/v1/forms/mysite',
+});
+```
+
+```astro
+<FormBlock formsBase={site.formsBase} variant="kontakt" submitLabel="Senden"
+           success={{ flag: 'kontakt_gesendet', anchor: 'sent' }}>
+```
+
+The form then posts to `<formsBase>/<name>`. **Your endpoint must answer with a
+303 redirect to `_next`.** A plain HTML form post is a navigation, so the
+browser follows the redirect back to your page, and that is the only thing that
+makes `ConversionTracking` fire. An endpoint that answers `200 {"ok":true}`
+looks like it works — the submission arrives, the operator gets the mail — while
+every GA4 and Meta conversion on the site silently stops.
+
+Your endpoint should also honour `_gotcha` (the honeypot `TrackingFields`
+renders) and validate `_next` against your own origins before redirecting to it,
+or it is a public open redirect.
 
 ### `FaqBlock.astro` — accordion + FAQPage JSON-LD
 
@@ -574,8 +632,11 @@ The CTA arrow, so every block and site points the same way.
 - **`lib/article`** — `ArticleCard`, `TocEntry` and `tocFrom(headings, depth)`.
 - **`lib/site`** — `defineSiteConfig()` types the one config file every site
   writes (autocomplete, typo'd keys caught at build, identical shape across
-  repos) and `formspreeAction(id)` builds the form URL. Everything in that
-  object compiles into public HTML — never put a secret in it.
+  repos). `formAction(config, formName)` resolves where a form posts —
+  `formsBase` if the site has its own endpoint, Formspree otherwise, and it
+  throws at build time naming the form if neither is set. `formspreeAction(id)`
+  builds a Formspree URL directly, for a form not using `FormBlock`. Everything
+  in that config object compiles into public HTML — never put a secret in it.
 - **`lib/consent`**, **`lib/attribution`** — the shared attribute/event/key
   names. Import these; never retype the string literals.
 

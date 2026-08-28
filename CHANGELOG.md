@@ -6,7 +6,33 @@ while `0.x`, a **minor** bump may contain breaking changes.
 Removing or renaming an export is breaking for every consuming site — grep the
 sibling repos' `src/` first and update the call sites in the same release.
 
-## [Unreleased]
+## [0.5.0] — 2026-08-28
+
+### Added
+
+- **`SiteConfig.formsBase` and `formAction()` — forms can leave Formspree.**
+  `FormBlock` hardcoded `formspreeAction(formspreeId)`, so no site could move
+  its forms anywhere else without abandoning the component. It now posts to
+  `<formsBase>/<form name>` when the site config sets `formsBase`, and to
+  Formspree otherwise. **Backward compatible**: a site that passes only
+  `formspreeId` behaves exactly as before, which is what lets the seven
+  consuming sites migrate one at a time instead of together.
+
+  The replacement endpoint must answer a form POST with a **303 to `_next`** —
+  that redirect is what makes `ConversionTracking` fire. An endpoint that
+  answers with JSON silently stops every browser-side conversion on the site,
+  and nothing else looks wrong. konforme-ki.de now posts to its own funnel API
+  (`shared-marketing-email-ecommerce-endpoint`), which also fires the
+  conversion server-side — where the cookie banner cannot suppress it.
+
+- **`ConversionTracking.SuccessState` gains `metaEvent` / `metaCustom`.**
+  Every success state fired Meta's standard `Lead` event unconditionally, so a
+  free download and real purchase intent reported the same conversion — on
+  konforme-ki.de this meant the ad account's `Lead` optimisation signal was
+  being diluted by checklist downloads. `metaEvent` names a different pixel
+  event per state (defaults to `Lead`, unchanged); `metaCustom: true` switches
+  to `fbq('trackCustom', ...)` for event names outside Meta's standard set.
+  Backward compatible: omitting both fields is exactly the old behaviour.
 
 ## [0.4.0] — 2026-08-25
 

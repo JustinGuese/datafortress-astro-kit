@@ -1,12 +1,17 @@
 ---
 /**
- * A Formspree form with all its plumbing wired.
+ * A form with all its plumbing wired.
  *
  * Every form on every site repeats the same five things: the action URL, a
  * hidden `form` name so the inbox is separable, the `_next` redirect that
  * carries a success flag back to the page, `TrackingFields`, and a submit
  * button. On pruefanfrage.de that boilerplate appeared five times and had
  * already drifted — one form was missing its honeypot, another its `_next`.
+ *
+ * Posts to Formspree by default, or to the site's own endpoint when
+ * `formsBase` is set — see `formAction` in `lib/site`. The wire format is
+ * identical either way, which is what lets a site migrate by changing one
+ * config value instead of every form.
  *
  * Put the fields in the default slot. The button, the hidden inputs and the
  * redirect are handled here.
@@ -15,11 +20,19 @@
  * flag set here is the flag it listens for.
  */
 import TrackingFields from './TrackingFields.astro';
-import { formspreeAction } from './lib/site';
+import { formAction } from './lib/site';
 
 interface Props {
-  /** Formspree form id — the part after `/f/`. */
-  formspreeId: string;
+  /** Formspree form id — the part after `/f/`. Omit when `formsBase` is set. */
+  formspreeId?: string;
+  /**
+   * Base URL of a self-hosted forms endpoint, no trailing slash. Takes
+   * precedence over `formspreeId`; pass `site.formsBase` through.
+   *
+   * The endpoint must answer with a **303 to `_next`** — that redirect is what
+   * makes `ConversionTracking` fire on the page the visitor lands back on.
+   */
+  formsBase?: string;
   /** Which offer/form this is. Becomes the submission `variant` and `data-cta`. */
   variant: string;
   /** Hidden `form` field, so one Formspree inbox stays separable. Defaults to `variant`. */
@@ -45,6 +58,7 @@ interface Props {
 
 const {
   formspreeId,
+  formsBase,
   variant,
   name = variant,
   success,
@@ -58,7 +72,7 @@ const next = success
   ? `${landingPage}?${success.flag}=1${success.anchor ? `#${success.anchor}` : ''}`
   : undefined;
 ---
-<form action={formspreeAction(formspreeId)} method="POST" class={className}>
+<form action={formAction({ formsBase, formspreeId }, name)} method="POST" class={className}>
   <input type="hidden" name="form" value={name} />
   {next && <input type="hidden" name="_next" value={next} />}
   <TrackingFields variant={variant} />
